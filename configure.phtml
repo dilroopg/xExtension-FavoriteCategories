@@ -103,6 +103,48 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 		<?php } ?>
 	</div>
 
+	<?php
+	// Say plainly where the right-click item comes from. It is not ours: this
+	// extension only appends an item to the menu RightClickActions builds, so
+	// without that extension there is no menu to append to. Better to say so on
+	// this page than to let someone right-click, find nothing, and call it a bug.
+	// Read the user's own enabled list rather than Minz_ExtensionManager: the
+	// manager only answers after its init() has run, and that list is keyed by
+	// the extension's *name* ("Right-Click Actions"), not its entrypoint — so
+	// asking for the entrypoint silently answers "no" and the panel would claim
+	// an installed extension is missing. The config array is always available.
+	$rcaInstalled = false;
+	try {
+		$enabled = FreshRSS_Context::userConf()->extensions_enabled;
+		if (is_array($enabled)) {
+			foreach (['Right-Click Actions', 'RightClickActions'] as $rcaName) {
+				if (!empty($enabled[$rcaName])) { $rcaInstalled = true; break; }
+			}
+		}
+	} catch (Throwable $e) {
+		// no user config in this render: say nothing rather than guess
+		$rcaInstalled = false;
+	}
+	?>
+	<div class="fc-group-label">Right-click menu</div>
+	<div class="fc-card">
+		<p class="fc-hint">
+			<?php if ($rcaInstalled) { ?>
+				<strong>RightClickActions is installed.</strong> Right-clicking a category in the
+				sidebar shows <em>Add to favorites</em> / <em>Remove from favorites</em>.
+			<?php } else { ?>
+				<strong>Needs the RightClickActions extension.</strong> This extension adds an
+				<em>Add to favorites</em> / <em>Remove from favorites</em> item to the sidebar's
+				right-click menu — but that menu belongs to
+				<a href="https://github.com/printfuck/xExtension-RightClickActions" target="_blank" rel="noopener">RightClickActions</a>,
+				not to this extension. <strong>Without it installed FreshRSS has no right-click
+				menu at all</strong>, so there is nothing to add the item to. Everything else — the
+				<em>Favorite</em> button on each row above, the ☆ under <em>Subscription
+				management</em>, and the star above the sidebar — works either way.
+			<?php } ?>
+		</p>
+	</div>
+
 	<div class="fc-group-label">Filter</div>
 	<form method="post" action="<?= $url ?>">
 		<input type="hidden" name="_csrf" value="<?= $csrf ?>" />
@@ -180,6 +222,21 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 					value="<?= htmlspecialchars($rowLabel, ENT_QUOTES) ?>"
 					placeholder="leave empty for the number on its own"
 					maxlength="40" autocomplete="off" data-fc-label />
+			</label>
+
+			<?php
+			// What the star button itself draws. A select rather than a pair of
+			// switches, because "both" and "neither" are not independent choices:
+			// exactly one of symbol/text, or both — never neither.
+			$btnContent = $store->buttonContent();
+			?>
+			<label class="fc-label-field fc-button-field">
+				<span>Star button shows</span>
+				<select name="button" class="fc-label-input" data-fc-button>
+					<option value="both" <?= $btnContent === 'both' ? 'selected' : '' ?>>Symbol and text</option>
+					<option value="icon" <?= $btnContent === 'icon' ? 'selected' : '' ?>>Symbol only</option>
+					<option value="text" <?= $btnContent === 'text' ? 'selected' : '' ?>>Text only</option>
+				</select>
 			</label>
 
 			<div class="fc-save-bar">

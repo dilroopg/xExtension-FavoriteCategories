@@ -166,6 +166,8 @@ final class FavoriteCategoriesStore
 		$this->setMetaIfAbsent('rowmode', 'both');
 		$this->setMetaIfAbsent('row_label', self::DEFAULT_LABEL);
 		$this->setMetaIfAbsent('show_count', '1');
+		// what the star button itself draws: both | icon | text
+		$this->setMetaIfAbsent('button', 'both');
 	}
 
 	// ------------------------------------------------------------ favorites
@@ -342,6 +344,36 @@ final class FavoriteCategoriesStore
 		return ['ok' => true, 'message' => $label === ''
 			? 'Saved: the sidebar row shows the number on its own.'
 			: 'Saved: the sidebar row is labelled "' . $label . '".'];
+	}
+
+	// --------------------------------------------------------- button content
+	//
+	//   both  the current state's symbol and the next action's text
+	//   icon  the symbol alone
+	//   text  the text alone
+	//
+	// No "neither": a control with no content is an invisible click target and
+	// an empty gap in the row. Each option is one or the other, never both.
+
+	public const BUTTON_CONTENTS = ['both', 'icon', 'text'];
+
+	public function buttonContent(): string
+	{
+		$b = $this->getMeta('button', 'both');
+		return in_array($b, self::BUTTON_CONTENTS, true) ? $b : 'both';
+	}
+
+	/** @return array{ok:bool,message:string} */
+	public function setButtonContent(string $what): array
+	{
+		if (!in_array($what, self::BUTTON_CONTENTS, true)) {
+			return ['ok' => false, 'message' => 'Refused: "' . $what . '" is not a button content option.'];
+		}
+		if (!$this->setMeta('button', $what)) {
+			return ['ok' => false, 'message' => 'Could not save the button option.'];
+		}
+		$now = ['both' => 'the symbol and the text', 'icon' => 'the symbol only', 'text' => 'the text only'][$what];
+		return ['ok' => true, 'message' => 'Saved: the star button shows ' . $now . '.'];
 	}
 
 	// ------------------------------------------------------------- meta I/O

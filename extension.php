@@ -82,6 +82,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			'next' => $this->store()->nextView(),
 			'rowMode' => $this->store()->rowMode(),
 			'rowLabel' => $this->store()->rowLabel(),
+			'button' => $this->store()->buttonContent(),
 			// _url() returns an HTML-escaped string ("&amp;"), which is correct
 			// in markup and WRONG in a JS string: fetch() would send a parameter
 			// literally named "amp;a" and every click would silently do nothing.
@@ -279,6 +280,17 @@ class FavoriteCategoriesExtension extends Minz_Extension
 				if (!$rm['ok']) {
 					Minz_Request::bad($rm['message'], $this->selfUrl());
 					return;
+				}
+				// The button content rides on the same form and the same Save,
+				// so the two halves of "what the sidebar shows" can never be
+				// saved out of step with each other.
+				$btn = Minz_Request::paramStringNull('button', true);
+				if ($btn !== null && trim($btn) !== '') {
+					$rb = $this->store()->setButtonContent(trim($btn));
+					if (!$rb['ok']) {
+						Minz_Request::bad($rb['message'], $this->selfUrl());
+						return;
+					}
 				}
 				$now = [
 					'caret' => 'the caret only',

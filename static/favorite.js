@@ -246,8 +246,37 @@
 		// label names what the NEXT click does; the icon shows the CURRENT state
 		all: { text: 'Show favorites', title: 'Favorites filter nothing right now \u2014 click to show only favorites' },
 		only: { text: 'Hide favorites', title: 'You are seeing only favorites \u2014 click to filter them out instead' },
-		without: { text: 'Show all', title: 'Favorites are filtered out \u2014 click to show everything again' }
+		without: { text: 'Show all', title: 'Everything except favorites is showing \u2014 click to show everything again' }
 	};
+
+	// ---- the button's own content ----------------------------------------
+	//
+	// Three settings, from the select in the settings page:
+	//
+	//   both  the current state's symbol AND the next action's text
+	//   icon  the symbol alone
+	//   text  the text alone
+	//
+	// There is deliberately no "neither": a button with no content is not a
+	// button, and the row would read as an empty gap. Validated server-side,
+	// and anything unexpected degrades to 'both'.
+	var content = FC.button === 'icon' || FC.button === 'text' ? FC.button : 'both';
+
+	function buttonInner(state) {
+		var l = LABELS[state] || LABELS.all;
+		var icon = '<span class="fc-ico">' + (ICONS[state] || ICONS.all) + '</span>';
+		// the text is split on the first space so it can wrap onto two lines
+		// inside a narrow shared row: "Show" / "favorites". CSS handles the
+		// wrap; the split only marks where the break belongs.
+		var words = l.text.split(' ');
+		var txt = '<span class="fc-txt">'
+			+ '<span class="fc-w">' + words[0] + '</span>'
+			+ (words.length > 1 ? ' <span class="fc-w">' + words.slice(1).join(' ') + '</span>' : '')
+			+ '</span>';
+		if (content === 'icon') { return icon; }
+		if (content === 'text') { return txt; }
+		return icon + txt;
+	}
 
 	function buildButton() {
 		// THE SHARED ROW. Any extension that wants a control above the sidebar
@@ -281,11 +310,9 @@
 		b.id = 'fc-view-btn';
 		b.className = 'fc-view-btn';
 		b.setAttribute('data-fc-state', view);
+		b.setAttribute('data-fc-content', content);
 		var l = LABELS[view] || LABELS.all;
-		// icon = current state, label = next action, kept in two spans so the
-		// icon never has to be re-parsed on every render
-		b.innerHTML = '<span class="fc-ico">' + (ICONS[view] || ICONS.all) + '</span>'
-			+ '<span class="fc-txt">' + l.text + '</span>';
+		b.innerHTML = buttonInner(view);
 		b.title = l.title;
 		b.setAttribute('aria-label', l.text + ' \u2014 ' + l.title);
 		b.addEventListener('click', function (ev) {
@@ -429,7 +456,79 @@
 		}
 	}
 
-	// ---- 8. keep markers correct as the page changes ----------------------
+	// ---- 8. right-click a category ---------------------------------------
+	//
+	// This item is CONTRIBUTED TO RightClickActions, not provided by us. With
+	// RCA installed its context menu is the one that opens; we append our item
+	// to it. Without RCA there is no right-click menu on the page at all, so
+	// there is nothing to append to and nothing is missing — every other way of
+	// favoriting (sidebar list, subscription box, settings list) is unaffected.
+	//
+	// Deliberately NO fallback menu: growing our own would duplicate RCA's UI,
+	// drift from its look, and be one more surface to break. If #frss-ctx-menu
+	// is absent when the event fires, we do nothing.
+	//
+	// Guarded so it cannot collide with another extension doing the same: our
+	// item carries .fc-ctx-item and we skip appending if one is already there,
+	// and we only ever READ the menu element that someone else built.
+	function catIdFromRow(el) {
+		var row = el && el.closest ? el.closest('li.tree-folder.category') : null;
+		if (!row || !row.id || row.id.indexOf('c_') !== 0) { return 0; }
+		var id = parseInt(row.id.slice(2), 10);
+		return id > 0 ? id : 0;
+	}
+
+	function attachRightClick() {
+		// capture phase: RCA builds its menu synchronously in its own handler,
+		// so by the time ours runs (on the same event, after theirs) the menu
+		// exists and we can append into it.
+		document.addEventListener('contextmenu', function (ev) {
+			var row = ev.target && ev.target.closest ? ev.target.closest('.tree-folder-title') : null;
+			if (!row) { return; }
+			var id = catIdFromRow(row);
+			if (!id) { return; }
+
+			// RCA builds its menu in the same tick; give it one microtask so our
+			// append cannot land on a menu it is about to replace.
+			window.setTimeout(function () {
+				var menu = document.getElementById('frss-ctx-menu');
+				if (!menu || menu.querySelector('.fc-ctx-item')) { return; }
+
+				var fav = !!isFav[id];
+				var info = meta[id] || {};
+
+				var sep = document.createElement('div');
+				sep.className = 'fc-ctx-sep';
+				sep.style.cssText = 'height:1px;margin:4px 0;background:rgba(128,128,128,.3)';
+
+				var item = document.createElement('div');
+				item.className = 'fc-ctx-item';
+				item.setAttribute('role', 'menuitem');
+				item.style.cssText = 'padding:6px 14px;cursor:pointer;display:flex;gap:8px;align-items:center';
+				item.innerHTML = '<span aria-hidden="true">' + (fav ? '\u2605' : '\u2606') + '</span>'
+					+ '<span>' + (fav ? 'Remove from favorites' : 'Add to favorites') + '</span>'
+					+ (info.feeds != null ? '<span style="opacity:.5;font-size:.85em;margin-left:auto">'
+						+ info.feeds + '</span>' : '');
+				item.addEventListener('mouseenter', function () {
+					item.style.background = 'rgba(128,128,128,.2)';
+				});
+				item.addEventListener('mouseleave', function () {
+					item.style.background = '';
+				});
+				item.addEventListener('click', function (ev2) {
+					ev2.preventDefault();
+					ev2.stopPropagation();
+					if (menu && menu.parentNode) { menu.style.display = 'none'; }
+					post({ act: fav ? 'unfav' : 'fav', cat: id });
+				});
+
+				menu.appendChild(sep);
+				menu.appendChild(item);
+			}, 0);
+		}, true);
+	}
+
+	// ---- 9. keep markers correct as the page changes ----------------------
 	//
 	// Infinite scroll and "load more" append new .flux nodes. One observer that
 	// only marks newly added items is cheaper than a polling loop.
@@ -454,6 +553,7 @@
 		buildButton();
 		buildFavSection();
 		buildSubscriptionButtons();
+		attachRightClick();
 		watch();
 	}
 
