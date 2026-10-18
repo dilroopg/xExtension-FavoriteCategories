@@ -2,9 +2,9 @@
 
 > **Companion: [Hidden Categories](https://github.com/dilroopg/xExtension-HiddenCategories)** — the
 > opposite job: put categories *away* rather than filtering down to a few. The two work together
-> fine and neither needs the other — Favorite only dims rows and skips any row already hidden, and
-> in Strict it never writes to a feed inside a hidden category. Installed together, their buttons
-> share one row above the sidebar.
+> fine and neither needs the other — Favorite removes rows it filters out but never selects a row
+> another extension has hidden, and in Strict it never writes to a feed inside a hidden category.
+> Installed together, their buttons share one row above the sidebar.
 
 **Filter your sidebar down to the categories you actually read.** Mark a few categories as
 favorites, then flip one star button to see only those — or everything except those.
@@ -13,8 +13,10 @@ FreshRSS can group multiple categories into a folder, but that doesn't help when
 care about are scattered across several folders: the main stream is still everything, and the
 sidebar is still all of it. This adds a favorites filter that works across folders.
 
-Nothing is deleted, renamed or moved, and no subscription is ever touched. **Nothing is written to
-a feed at all** — favoriting is a filter in your browser, not a change to your subscriptions.
+Nothing is deleted, renamed or moved, and no subscription is ever touched. **Nothing is written to a
+feed in Light mode** — favoriting is a filter in your browser, not a change to your subscriptions.
+The one thing it does write is a favorited category's display position, so favorites sort to the
+top; that value is recorded first and restored when you unfavorite.
 
 ## Install
 
@@ -40,8 +42,9 @@ extension. Tested on FreshRSS 1.30.1 / PHP 8.4.
 
 1. Press **Favorite** next to a category in the extension's settings, or the **☆** on a category
    box under **Subscription management**.
-2. A star button appears above the sidebar. Click it to cycle through the three views.
-3. To stop filtering, click until the star is hollow again.
+2. The favorited category moves to the top of the sidebar and gains a small **favorite** tag.
+3. A star button appears above the sidebar. Click it to cycle through the three views.
+4. To stop filtering, click until the star is hollow again.
 
 ## The star
 
@@ -50,14 +53,14 @@ The star *is* the button, and its icon shows which view you're in. Clicking cycl
 | star | view | sidebar | stream |
 |---|---|---|---|
 | ☆ hollow | **everything** | none of your categories are filtered by this extension | nothing filtered |
-| ★ filled | **favorites only** | non-favorites fade back | only articles from favorited categories |
-| ★̸ slashed | **favorites filtered out** | favorites fade back | only articles from the rest |
+| ★ filled | **favorites only** | only favorited categories are listed | only articles from favorited categories |
+| ★̸ slashed | **favorites filtered out** | favorited categories are removed | only articles from the rest |
 
-The filtered views dim the other rows rather than removing them, so a stray click can never leave
-you with an apparently empty sidebar — and one more click gets you back.
+The filtered views **remove** the rows they filter out rather than dimming them, so the sidebar shows
+exactly what the stream is showing. One more click on the star brings everything back.
 
-The filled views also tint favorited category names, so you can tell at a glance which rows the
-filter is acting on.
+Favorited categories carry a small **favorite** tag in every view, so you can tell at a glance which
+rows the filter is acting on — including in *everything*, where nothing is filtered at all.
 
 ## Pick a mode
 
@@ -99,10 +102,11 @@ Strict.
 
 This extension is deliberately built to coexist. Two things make that true:
 
-- **It never writes `display` on a category row.** It dims with `opacity`, so another extension
-  hiding a row still works — it just stays hidden.
 - **Every filter rule excludes rows another extension has hidden.** A category that is both
-  favorited and hidden stays hidden in every favorites view.
+  favorited and hidden stays hidden in every favorites view — the hiding extension's row is never
+  selected by a favorites rule, so its visibility is left entirely to that extension.
+- **Only the rows this extension is allowed to touch are hidden.** Because of that exclusion, a
+  favorites view never removes a row somebody else put away, and never brings one back.
 
 **Neither extension needs the other installed.** Alone, this is a complete favorites filter. With a
 hiding extension also installed, the two buttons share one row above the sidebar: one control takes
@@ -132,7 +136,8 @@ preview and an "Unsaved changes" line until you commit.
 
 **Always:** one attribute on a favorited category — its `position`, which is how core orders the
 sidebar. The previous value is recorded first and put back on unfavorite, so the original order
-returns exactly (including the case where it had no position at all).
+returns exactly (including the case where it had no position at all). This is what pins favorites
+to the top; nothing else about a category is changed.
 
 **Light:** nothing else. **Strict:** additionally one column on every feed — visibility — with the
 previous value recorded first and put back afterwards. Nothing else about a feed is touched.
@@ -170,14 +175,16 @@ restores them.
 
 **The star isn't there.** It appears once at least one category is a favorite.
 
-**Clicking the star dims rows but my stream doesn't change.** The stream filter matches articles by
-their category id. A theme that strips `data-category` from article rows will dim the sidebar but
+**Clicking the star changes the sidebar but not the stream.** The stream filter matches articles by
+their category id. A theme that strips `data-category` from article rows will filter the sidebar but
 leave the stream alone.
 
-**Settings won't save / the page says the store isn't writable.** The web server can't write
-`data/users/<your user>/extensions/FavoriteCategories/`. This normally only happens if FreshRSS has
-been run as root from a command line, leaving root-owned files behind. Fix ownership with
-`chown -R www-data:www-data data/users/<your user>/extensions` (use your own web-server user).
+**Settings won't save / the page says the store isn't writable.** The extension repairs its own
+directory and database permissions on every open, including the case where a previous unpack or a
+root command-line run left them owned by another user — so this should now be self-healing. If the
+message persists, the filesystem is refusing the repair outright (for example a read-only mount, or
+group ownership the process cannot change). The message names the exact path, owner and mode to
+check.
 
 **It won't load at all.** You're on FreshRSS below 1.28.0, which doesn't have a feature it needs.
 
@@ -196,6 +203,14 @@ encouraged.** The parts worth reading are `store.php` (the whole persistent stat
 the comment at the top explaining the non-conflict contract).
 
 ## Changelog
+
+**1.2.1** — README corrections.
+
+- The README described the old dimming behaviour in five places, contradicting 1.2.0's real
+  hiding. Corrected, and the favorite tag and top-of-sidebar pinning are now documented in the
+  feature description instead of only in the changelog.
+- The troubleshooting section no longer tells you to `chown` the state directory by hand — that
+  step is gone, because the extension repairs it itself.
 
 **1.2.0** — favorites are pinned, tagged, and the filters actually filter.
 
