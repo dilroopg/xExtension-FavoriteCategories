@@ -334,6 +334,22 @@ html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[d
 	word-break: break-all;
 }
 
+/* mode radios on the settings page */
+.fc-mode-opt {
+	display: flex;
+	align-items: center;
+	gap: 0.45em;
+	cursor: pointer;
+	padding: 0.3em 0.45em;
+	border-radius: 5px;
+}
+.fc-mode-opt:hover {
+	background: rgba(128, 128, 128, 0.1);
+}
+.fc-mode-opt .fc-hint {
+	font-weight: normal;
+}
+
 /* the three display states, as a radio list */
 .fc-modes {
 	display: flex;

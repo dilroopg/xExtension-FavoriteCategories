@@ -161,6 +161,54 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 		</div>
 	</form>
 
+	<?php
+	$mode = $store->mode();
+	$demote = $store->demote();
+	?>
+	<div class="fc-group-label">Mode</div>
+	<form method="post" action="<?= $url ?>" id="fc-mode-form">
+		<input type="hidden" name="_csrf" value="<?= $csrf ?>" />
+		<input type="hidden" name="act" value="mode" />
+		<div class="fc-card">
+			<label class="fc-mode-opt" title="Nothing is written to your feeds. Filtered in the browser; the API and clients without JavaScript still see everything.">
+				<input type="radio" name="mode" value="light" <?= $mode === 'light' ? 'checked' : '' ?> />
+				<strong>Light</strong> <span class="fc-hint">&mdash; visual only, writes nothing</span>
+			</label>
+			<label class="fc-mode-opt" title="Feeds are given FreshRSS's own visibility settings: favorites are promoted, everything else pushed down. The previous value of every feed is saved and restored when you switch back or unfavorite.">
+				<input type="radio" name="mode" value="strict" <?= $mode === 'strict' ? 'checked' : '' ?> />
+				<strong>Strict</strong> <span class="fc-hint">&mdash; filters for every client, your phone included</span>
+			</label>
+			<div class="fc-save-bar">
+				<button class="btn btn-important" type="submit">Save mode</button>
+				<span class="fc-dirty" aria-live="polite"></span>
+			</div>
+		</div>
+	</form>
+
+	<?php if ($mode === 'strict') { ?>
+	<div class="fc-group-label">Strict: where non-favorites go</div>
+	<form method="post" action="<?= $url ?>">
+		<input type="hidden" name="_csrf" value="<?= $csrf ?>" />
+		<input type="hidden" name="act" value="demote" />
+		<div class="fc-card">
+			<label class="fc-mode-opt" title="Non-favorites drop out of the main stream on every client, but stay readable in their own category and in reader apps. This uses FreshRSS's 'Show in its feed' (-5).">
+				<input type="radio" name="demote" value="stream" <?= $demote === 'stream' ? 'checked' : '' ?> />
+				<strong>Out of the main stream</strong>
+				<span class="fc-hint">&mdash; still readable in their category</span>
+			</label>
+			<label class="fc-mode-opt" title="Non-favorites are removed everywhere, exactly like Hidden Categories' Strict mode. This uses 'Do not show' (-10), so they are not returned to any client at all, including reader apps.">
+				<input type="radio" name="demote" value="gone" <?= $demote === 'gone' ? 'checked' : '' ?> />
+				<strong>Gone entirely</strong>
+				<span class="fc-hint">&mdash; not anywhere, same as Hidden's Strict</span>
+			</label>
+			<div class="fc-save-bar">
+				<button class="btn btn-important" type="submit">Save</button>
+				<span class="fc-hint">Feeds enforced: <?= $store->snapshotCount() ?></span>
+			</div>
+		</div>
+	</form>
+	<?php } ?>
+
 	<div class="fc-group-label">Sidebar</div>
 	<?php
 	$rowLabel = $store->rowLabel();
@@ -265,15 +313,17 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 		<dl>
 			<dt>Favorites</dt><dd><?= count($favRows) ?> of <?= count($cats) ?> categories</dd>
 			<dt>View</dt><dd><?= htmlspecialchars($viewLabel, ENT_QUOTES) ?></dd>
-			<dt>Written to feeds</dt><dd>Never. Favoriting is a browser-side filter, so nothing is
-				written to a feed and nothing needs restoring when you switch this off.</dd>
+			<dt>Written to feeds</dt><dd><?= $mode === 'strict'
+				? 'Strict: one column (visibility) on every feed, previous values saved in feed_snap and restored when you switch back, unfavorite, or disable. Feeds in categories hidden by another extension are never touched.'
+				: 'Nothing. Light filters in the browser only.' ?></dd>
 			<dt>On since</dt><dd><?= htmlspecialchars($store->getMeta('first_enabled_at', '—'), ENT_QUOTES) ?></dd>
 			<dt>Last disabled</dt><dd><?= htmlspecialchars($store->getMeta('last_disabled_at', 'never'), ENT_QUOTES) ?></dd>
 			<dt>Storage</dt><dd><code><?= htmlspecialchars($store->path(), ENT_QUOTES) ?></code></dd>
 			<dt>Works with</dt><dd>Any extension: this one only ever reads the page's own markup, and
 				never takes over a row another extension has hidden.</dd>
-			<dt>Switching off</dt><dd>Nothing to undo — no feed was touched. Favorites and display
-				options are kept and come back when you re-enable it.</dd>
+			<dt>Switching off</dt><dd>Strict restores every feed it changed, then disables. If the
+				restore cannot finish, the disable is refused and the extension stays enabled so it
+				can be fixed from here. Favorites and display options are kept either way.</dd>
 		</dl>
 	</details>
 </div>

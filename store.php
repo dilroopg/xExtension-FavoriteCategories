@@ -12,10 +12,15 @@ declare(strict_types=1);
  *   meta     user-level key/value (schema version, view, row display)
  *   fav_cat  the DEFINITION — which categories are favorited
  *
- * Deliberately absent, unlike its sibling extension:
- *   - no feed snapshot table: this extension never writes to a feed.
- *     Favoriting is a browser-side filter, so there is nothing to snapshot or
- *     restore and no way for it to fight another extension over feed.priority.
+ * Two modes, exactly like its sibling extension:
+ *
+ *   Light   nothing is written to the feeds. The sidebar and article list are
+ *           filtered in the browser.
+ *   Strict  feed visibility (FreshRSS's own `priority` column) is changed so
+ *           the filter is real for every client, with the previous value
+ *           snapshotted per feed and restored exactly.
+ *
+ * Deliberately absent:
  *   - no passcode/lock: the lock is a self-contained feature of the sibling.
  *
  * Nothing here writes to FreshRSS's own databases, config or feeds, and
@@ -154,11 +159,25 @@ final class FavoriteCategoriesStore
 			cat_name TEXT NOT NULL,
 			fav_at TEXT NOT NULL
 		)');
+		// the EFFECTS, not the definition: one row per feed this extension has
+		// changed, holding the value it had before. Same shape as the sibling
+		// extension's table, in this extension's own file.
+		$pdo->exec('CREATE TABLE IF NOT EXISTS feed_snap (
+			feed_id INTEGER PRIMARY KEY,
+			orig_priority INTEGER NOT NULL,
+			applied_at TEXT NOT NULL,
+			mode TEXT NOT NULL,
+			note TEXT NOT NULL
+		)');
 	}
 
 	private function seedMeta(): void
 	{
 		$this->setMetaIfAbsent('schema', (string)self::SCHEMA);
+		$this->setMetaIfAbsent('mode', 'light');
+		// Strict only: how far a non-favorite falls back. -5 keeps it readable
+		// in its own category and in reader apps; -10 removes it everywhere.
+		$this->setMetaIfAbsent('demote', 'stream');
 		// 'all' is the safe starting view: nothing is filtered until asked
 		$this->setMetaIfAbsent('view', 'all');
 		// display options for the sidebar row, same three-state model as the
@@ -302,6 +321,170 @@ final class FavoriteCategoriesStore
 		return $this->setMeta('view', $view);
 	}
 
+	// --------------------------------------------------------------- strict
+	//
+	// Strict makes favoriting real for every client by writing FreshRSS's own
+	// per-feed Visibility (the `priority` column), exactly as the sibling
+	// extension does for hiding:
+	//
+	//   20  Show in important feeds   <- what a favorite is promoted to
+	//   10  Show in main stream       <- what almost every feed is
+	//    0  Show in its category      <- "gone" demote target
+	//   -5  Show in its feed          <- "stream" demote target
+	//  -10  Do not show               <- never returned by the API at all
+	//
+	// The demote target is the user's choice, because it is the difference
+	// between "not in my main stream" and "not anywhere". Every value is
+	// snapshotted before it is changed and restored afterwards, and nothing
+	// else about the feed is touched.
+
+	public const PRIORITY_FAV = 20;
+	public const PRIORITY_GONE = -10;
+	public const DEMOTE_TARGETS = ['stream', 'gone'];
+
+	/** 'light' | 'strict' — anything unexpected falls back to the safe mode. */
+	public function mode(): string
+	{
+		$m = $this->getMeta('mode', 'light');
+		return in_array($m, ['light', 'strict'], true) ? $m : 'light';
+	}
+
+	/** @return array{ok:bool,message:string} */
+	public function setMode(string $mode): array
+	{
+		if (!in_array($mode, ['light', 'strict'], true)) {
+			return ['ok' => false, 'message' => 'Refused: "' . $mode . '" is not a mode. Nothing was changed.'];
+		}
+		// written last of any multi-step switch: a crash before this leaves the
+		// previous mode, which is the state the feed data is consistent with
+		if (!$this->setMeta('mode', $mode)) {
+			return ['ok' => false, 'message' => 'Save failed: could not store the mode.'];
+		}
+		return ['ok' => true, 'message' => 'Mode saved: ' . $mode . '.'];
+	}
+
+	/** 'stream' (out of the main stream) | 'gone' (out of the category too). */
+	public function demote(): string
+	{
+		$d = $this->getMeta('demote', 'stream');
+		return in_array($d, self::DEMOTE_TARGETS, true) ? $d : 'stream';
+	}
+
+	/**
+	 * The priority a non-favorite is pushed down to, per the current choice.
+	 *
+	 *   stream  -5   "Show in its feed": still in its category and in reader
+	 *                apps, just not the main stream
+	 *   gone   -10   "Do not show": never returned to any client, identical to
+	 *                the sibling extension's Strict. The category page is empty
+	 *                too while this is in force — that is the cost of it being
+	 *                gone from the phone as well.
+	 */
+	public function demotePriority(): int
+	{
+		return $this->demote() === 'gone' ? self::PRIORITY_GONE : -5;
+	}
+
+	/** @return array{ok:bool,message:string} */
+	public function setDemote(string $what): array
+	{
+		if (!in_array($what, self::DEMOTE_TARGETS, true)) {
+			return ['ok' => false, 'message' => 'Refused: "' . $what . '" is not a demote option.'];
+		}
+		if (!$this->setMeta('demote', $what)) {
+			return ['ok' => false, 'message' => 'Could not save the demote option.'];
+		}
+		return ['ok' => true, 'message' => $what === 'gone'
+			? 'Non-favorites will be hidden entirely, on every client.'
+			: 'Non-favorites will leave the main stream but stay in their category.'];
+	}
+
+	/**
+	 * Snapshot one feed's priority before this extension changes it.
+	 *
+	 * @return array{state:string,orig:int|null} state: snapped | recorded | error
+	 */
+	public function enforceFeed(int $feedId, int $currentPriority): array
+	{
+		try {
+			$st = $this->pdo()->prepare('SELECT orig_priority FROM feed_snap WHERE feed_id = :id');
+			$st->execute([':id' => $feedId]);
+			$snapped = $st->fetchColumn();
+		} catch (Throwable $e) {
+			return ['state' => 'error', 'orig' => null];
+		}
+		if ($snapped !== false) {
+			return ['state' => 'recorded', 'orig' => (int)$snapped];
+		}
+		try {
+			$this->pdo()->beginTransaction();
+			$this->pdo()->prepare(
+				'INSERT INTO feed_snap (feed_id, orig_priority, applied_at, mode, note)
+				 VALUES (:id, :p, :t, :m, :n)'
+			)->execute([
+				':id' => $feedId,
+				':p' => $currentPriority,
+				':t' => date('c'),
+				':m' => 'strict',
+				':n' => 'snapped',
+			]);
+			$this->pdo()->commit();
+			return ['state' => 'snapped', 'orig' => $currentPriority];
+		} catch (Throwable $e) {
+			if ($this->pdo()->inTransaction()) {
+				$this->pdo()->rollBack();
+			}
+			return ['state' => 'error', 'orig' => null];
+		}
+	}
+
+	/** The recorded original priority for a feed, or null if none. */
+	public function origFor(int $feedId): ?int
+	{
+		try {
+			$st = $this->pdo()->prepare('SELECT orig_priority FROM feed_snap WHERE feed_id = :id');
+			$st->execute([':id' => $feedId]);
+			$v = $st->fetchColumn();
+			return ($v === false || $v === null) ? null : (int)$v;
+		} catch (Throwable $e) {
+			return null;
+		}
+	}
+
+	/** @return list<array{feed_id:int,orig_priority:int}> */
+	public function snapshots(): array
+	{
+		try {
+			$rows = $this->pdo()->query('SELECT feed_id, orig_priority FROM feed_snap ORDER BY feed_id')->fetchAll();
+		} catch (Throwable $e) {
+			return [];
+		}
+		$out = [];
+		foreach ($rows as $r) {
+			$out[] = ['feed_id' => (int)$r['feed_id'], 'orig_priority' => (int)$r['orig_priority']];
+		}
+		return $out;
+	}
+
+	public function snapshotCount(): int
+	{
+		try {
+			return (int)$this->pdo()->query('SELECT count(*) FROM feed_snap')->fetchColumn();
+		} catch (Throwable $e) {
+			return 0;
+		}
+	}
+
+	/** Drop one snapshot row after its value has been restored. */
+	public function forgetSnapshot(int $feedId): void
+	{
+		try {
+			$this->pdo()->prepare('DELETE FROM feed_snap WHERE feed_id = :id')->execute([':id' => $feedId]);
+		} catch (Throwable $e) {
+			// leave it: a stale row is retried on the next pass
+		}
+	}
+
 	// -------------------------------------------------------- display options
 
 	/** What the sidebar row draws: caret | number | both. */
@@ -436,6 +619,15 @@ final class FavoriteCategoriesStore
 		$view = $this->getMeta('view', 'all');
 		if (!in_array($view, self::VIEWS, true)) {
 			$problems[] = 'view value "' . $view . '" is not one of ' . implode('/', self::VIEWS);
+		}
+		if (!in_array($this->getMeta('mode', 'light'), ['light', 'strict'], true)) {
+			$problems[] = 'mode value is not light/strict';
+		}
+		// Light must never leave enforcement snapshots behind: if it does, a mode
+		// switch was interrupted and the restore has to finish first.
+		if ($this->mode() === 'light' && $this->snapshotCount() > 0) {
+			$problems[] = 'light mode with ' . $this->snapshotCount()
+				. ' enforced feed(s) recorded — the restore was interrupted';
 		}
 		return $problems;
 	}

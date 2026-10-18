@@ -83,6 +83,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			'rowMode' => $this->store()->rowMode(),
 			'rowLabel' => $this->store()->rowLabel(),
 			'button' => $this->store()->buttonContent(),
+			'mode' => $this->store()->mode(),
 			// _url() returns an HTML-escaped string ("&amp;"), which is correct
 			// in markup and WRONG in a JS string: fetch() would send a parameter
 			// literally named "amp;a" and every click would silently do nothing.
@@ -116,10 +117,11 @@ class FavoriteCategoriesExtension extends Minz_Extension
 	 * FreshRSS calls this from disableAction — before it writes
 	 * extensions_enabled — and a non-true return BLOCKS the disable.
 	 *
-	 * There is nothing to undo: this extension never writes to a feed. The
-	 * state (favorites, view, display options) is kept so re-enabling comes back
-	 * exactly as it was left. Returning true here is therefore honest rather
-	 * than a shortcut — the restore is provably a no-op.
+	 * Same contract as the sibling extension: every feed this extension changed
+	 * is restored from its snapshot before the disable goes through, and if the
+	 * restore cannot finish the disable is REFUSED so the user still has the
+	 * settings page to fix it from. The state (favorites, view, display
+	 * options) is kept so re-enabling comes back exactly as it was left.
 	 *
 	 * @return string|true
 	 */
@@ -127,14 +129,221 @@ class FavoriteCategoriesExtension extends Minz_Extension
 	{
 		try {
 			$this->store()->assertSchema();
-			$this->store()->checkpoint('disabled');
 		} catch (Throwable $e) {
-			// Nothing was written to a feed, so a broken store cannot leave the
-			// instance inconsistent. Say so in the log and let the disable go
-			// through; refusing would trap the user with no way back.
-			Minz_Log::warning('FavoriteCategories: store check on disable failed: ' . $e->getMessage());
+			return 'Favorite Categories: could not open its state store, so nothing was restored. '
+				. 'The extension was left enabled. ' . $e->getMessage();
 		}
+		if (!$this->store()->available()) {
+			return 'Favorite Categories: state store is unusable (' . $this->store()->error() . '), '
+				. 'so nothing was restored. The extension was left enabled.';
+		}
+
+		// restore everything: temporarily switch the stored mode off so the
+		// sweep is restore-only, then put it back so re-enabling returns in the
+		// mode the user left it in
+		$mode = $this->store()->mode();
+		if ($mode === 'strict') {
+			$this->store()->setMode('light');
+		}
+		$sweep = $this->sweepFeeds();
+		if ($mode === 'strict') {
+			$this->store()->setMode($mode);
+		}
+
+		if (!$sweep['ok']) {
+			return 'Favorite Categories: ' . $sweep['message'] . '. Nothing was changed and the '
+				. 'extension was left enabled so it can be fixed from its settings page.';
+		}
+		$this->store()->checkpoint('disabled');
 		return true;
+	}
+
+	/**
+	 * Converge the feed visibility to the favorites set, and prove it.
+	 *
+	 * A direct port of the sibling extension's sweep, with one rule added:
+	 * feeds in a category that another extension has hidden are NEVER touched.
+	 * That is the whole non-conflict guarantee on the feed side — favorites can
+	 * reorder feeds, but it cannot resurrect one a hiding extension has removed,
+	 * and the two extensions therefore never write the same row.
+	 *
+	 * In Light mode it only RESTORES (leftovers from a previous Strict session);
+	 * it never writes a new value.
+	 *
+	 * $apply = false performs the same walk without writing, for diagnostics.
+	 *
+	 * @return array{ok:bool,enforced:int,restored:int,skipped:int,failed:int,message:string}
+	 */
+	public function sweepFeeds(bool $apply = true): array
+	{
+		$store = $this->store();
+		$strict = $store->mode() === 'strict';
+		$favIds = $store->favIds();
+		$skipCats = $this->externallyHiddenIds();
+		$demoteTo = $store->demotePriority();
+		$enforced = 0;
+		$restored = 0;
+		$skipped = 0;
+		$failed = 0;
+
+		// feed id -> current priority, feed id -> category, read once
+		$current = [];
+		$categoryOf = [];
+		try {
+			foreach (FreshRSS_Factory::createFeedDao()->selectAll() as $feed) {
+				$id = (int)$feed['id'];
+				$current[$id] = (int)$feed['priority'];
+				$categoryOf[$id] = (int)$feed['category'];
+			}
+		} catch (Throwable $e) {
+			return ['ok' => false, 'enforced' => 0, 'restored' => 0, 'skipped' => 0, 'failed' => 0,
+				'message' => 'could not read feeds: ' . $e->getMessage()];
+		}
+
+		// ---- 1. restore anything that should no longer be enforced ---------
+		// Covers: unfavorited, moved category, deleted feed, Light mode, or a
+		// feed that has since been claimed by a hiding extension.
+		foreach ($store->snapshots() as $snap) {
+			$feedId = $snap['feed_id'];
+			$cat = $categoryOf[$feedId] ?? null;
+			if ($cat === null) {
+				if ($apply) { $store->forgetSnapshot($feedId); }
+				$skipped++;
+				continue;
+			}
+			// a feed now inside an externally hidden category: hand it back
+			$claimed = in_array($cat, $skipCats, true);
+			$stillOurs = $strict && !$claimed;
+			if ($stillOurs) {
+				continue;                     // stays enforced, handled in pass 2
+			}
+			if (!$apply) { $restored++; continue; }
+			if (!$this->writePriority($feedId, $snap['orig_priority'])) {
+				$failed++;
+				continue;
+			}
+			$store->forgetSnapshot($feedId);
+			$restored++;
+		}
+
+		// ---- 2. enforce ---------------------------------------------------
+		if ($strict) {
+			foreach ($categoryOf as $feedId => $cat) {
+				if (in_array($cat, $skipCats, true)) {
+					continue;                 // someone else owns this row
+				}
+				$prio = $current[$feedId] ?? null;
+				if ($prio === null) { continue; }
+				$target = in_array($cat, $favIds, true)
+					? FavoriteCategoriesStore::PRIORITY_FAV
+					: $demoteTo;
+				if ($prio === $target) {
+					$skipped++;
+					continue;
+				}
+				$known = $store->origFor($feedId);
+				if ($known === null) {
+					$r = $store->enforceFeed($feedId, $prio);
+					if ($r['state'] === 'error') { $failed++; continue; }
+				}
+				if (!$apply) { $enforced++; continue; }
+				if (!$this->writePriority($feedId, $target)) {
+					$failed++;
+					// the snapshot is wrong if nothing changed; drop it so a later
+					// run re-snapshots cleanly
+					$store->forgetSnapshot($feedId);
+					continue;
+				}
+				$enforced++;
+			}
+		}
+
+		if ($failed > 0) {
+			return ['ok' => false, 'enforced' => $enforced, 'restored' => $restored,
+				'skipped' => $skipped, 'failed' => $failed,
+				'message' => $failed . ' feed(s) could not be updated'];
+		}
+		return ['ok' => true, 'enforced' => $enforced, 'restored' => $restored,
+			'skipped' => $skipped, 'failed' => 0, 'message' => ''];
+	}
+
+	/**
+	 * Category ids another extension has hidden.
+	 *
+	 * Read as a plain SQLite query against that extension's own state file, if
+	 * it exists, because the page payload is not available on every code path
+	 * (the sweep also runs from the disable hook and from a settings-page POST).
+	 *
+	 * This is deliberately read-only and completely optional: no file, no table,
+	 * or no PDO SQLite means "nothing is hidden", which is exactly the
+	 * standalone case. Nothing here is required for this extension to work, and
+	 * nothing is written to that file. The path is derived from the user data
+	 * directory, so it never names another extension's code, only a convention
+	 * for where its state lives.
+	 *
+	 * @return list<int>
+	 */
+	private function externallyHiddenIds(): array
+	{
+		try {
+			$file = $this->getExtensionUserPath();
+			// .../extensions/FavoriteCategories -> .../extensions
+			$base = dirname(rtrim($file, '/'));
+			$candidates = glob($base . '/*/state.sqlite');
+			if (!$candidates) {
+				return [];
+			}
+			$ids = [];
+			foreach ($candidates as $path) {
+				// only files that actually have a hidden_cat table are considered
+				try {
+					$pdo = new PDO('sqlite:' . $path, null, null, [
+						PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+						PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_COLUMN,
+					]);
+					$pdo->exec('PRAGMA busy_timeout=1000');
+					$has = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='hidden_cat'")->fetch();
+					if ($has === false) {
+						continue;
+					}
+					foreach ($pdo->query('SELECT cat_id FROM hidden_cat') as $id) {
+						$ids[] = (int)$id;
+					}
+				} catch (Throwable $e) {
+					// unreadable or not ours: ignore it
+					continue;
+				}
+			}
+			return array_values(array_unique($ids));
+		} catch (Throwable $e) {
+			Minz_Log::warning('FavoriteCategories: could not read external hidden set: ' . $e->getMessage());
+			return [];
+		}
+	}
+
+	/**
+	 * Write one feed's priority and confirm it landed.
+	 *
+	 * Uses FreshRSS's own DAO rather than raw SQL so the write goes through the
+	 * same path the UI uses. The value is re-read afterwards: a write that
+	 * returns without an error but did not change the row is treated as a
+	 * failure, because a silent no-op means the feed stays visible while the UI
+	 * claims it was filtered.
+	 */
+	private function writePriority(int $feedId, int $priority): bool
+	{
+		try {
+			FreshRSS_Factory::createFeedDao()->updateFeed($feedId, ['priority' => $priority]);
+		} catch (Throwable $e) {
+			Minz_Log::warning('FavoriteCategories: priority write failed for feed ' . $feedId . ': ' . $e->getMessage());
+			return false;
+		}
+		try {
+			$feed = FreshRSS_Factory::createFeedDao()->searchById($feedId);
+			return $feed !== null && (int)$feed->priority() === $priority;
+		} catch (Throwable $e) {
+			return false;
+		}
 	}
 
 	/** Lazily built store, rooted in this user's own extension data directory. */
@@ -230,7 +439,11 @@ class FavoriteCategoriesExtension extends Minz_Extension
 					Minz_Request::bad($result['message'], $this->selfUrl());
 					return;
 				}
-				Minz_Request::good($result['message'], $this->selfUrl());
+				// Strict: favoriting changes what the feeds should look like, so
+				// converge now rather than on the next page load.
+				$sweep = $this->sweepFeeds();
+				$extra = $sweep['ok'] ? '' : ' But ' . $sweep['message'] . '.';
+				Minz_Request::good($result['message'] . $extra, $this->selfUrl());
 				return;
 
 			case 'view':
@@ -248,6 +461,15 @@ class FavoriteCategoriesExtension extends Minz_Extension
 				}
 				if (!$this->store()->setView($to)) {
 					Minz_Request::bad('Could not save the view: nothing was changed.', $this->selfUrl());
+					return;
+				}
+				// Strict: the view is what the feeds should now look like.
+				// 'all' restores every feed; 'only' promotes favorites and
+				// demotes the rest; 'without' does the inverse. Light writes
+				// nothing, so the sweep is a no-op restore pass.
+				$sweep = $this->sweepFeeds();
+				if (!$sweep['ok']) {
+					Minz_Request::bad('View saved, but ' . $sweep['message'] . '.', $this->selfUrl());
 					return;
 				}
 				Minz_Request::good(
@@ -298,6 +520,46 @@ class FavoriteCategoriesExtension extends Minz_Extension
 					'both' => '"' . $this->store()->rowLabel() . '" and the number',
 				][$this->store()->rowMode()] ?? 'nothing';
 				Minz_Request::good('Saved: the sidebar row shows ' . $now . '.', $this->selfUrl());
+				return;
+
+			case 'mode':
+				$mode = Minz_Request::paramStringNull('mode', true);
+				if ($mode === null || trim($mode) === '') {
+					Minz_Request::bad('Save failed: no mode was sent, so nothing was changed.', $this->selfUrl());
+					return;
+				}
+				$r = $this->store()->setMode(trim($mode));
+				if (!$r['ok']) {
+					Minz_Request::bad($r['message'], $this->selfUrl());
+					return;
+				}
+				// Light -> Strict enforces; Strict -> Light restores. One sweep.
+				$sweep = $this->sweepFeeds();
+				if (!$sweep['ok']) {
+					Minz_Request::bad($r['message'] . ' But ' . $sweep['message'] . '.', $this->selfUrl());
+					return;
+				}
+				Minz_Request::good($r['message'], $this->selfUrl());
+				return;
+
+			case 'demote':
+				$what = Minz_Request::paramStringNull('demote', true);
+				if ($what === null || trim($what) === '') {
+					Minz_Request::bad('Save failed: no option was sent, so nothing was changed.', $this->selfUrl());
+					return;
+				}
+				$r = $this->store()->setDemote(trim($what));
+				if (!$r['ok']) {
+					Minz_Request::bad($r['message'], $this->selfUrl());
+					return;
+				}
+				// changing how far non-favorites fall back means re-applying
+				$sweep = $this->sweepFeeds();
+				if (!$sweep['ok']) {
+					Minz_Request::bad($r['message'] . ' But ' . $sweep['message'] . '.', $this->selfUrl());
+					return;
+				}
+				Minz_Request::good($r['message'], $this->selfUrl());
 				return;
 
 			default:
