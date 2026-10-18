@@ -29,15 +29,15 @@ $url = _url('extension', 'configure', 'e', urlencode($this->getName()));
 // button can never disagree about what "next click" means
 $view = $store->view();
 $nextView = $store->nextView();
-// Labels name the DESTINATION: what you will be looking at after the click.
+// Labels and titles name the CURRENT state, matching the sidebar star.
 $viewLabels = [
-	'all' => ['Only favorites', 'Narrow the sidebar and stream down to your favorite categories'],
-	'only' => ['Hide', 'Filter your favorites out instead'],
-	'without' => ['Show all', 'Stop filtering and show everything'],
+	'all' => ['All', 'Everything is showing — favorites are not filtering anything'],
+	'only' => ['Only favorites', 'Only your favorite categories are showing'],
+	'without' => ['No favorites', 'Favorites are filtered out — everything else is showing'],
 ];
 $viewLabel = ['all' => 'everything', 'only' => 'favorites only', 'without' => 'favorites filtered out'][$view] ?? 'everything';
-$nextViewLabel = $viewLabels[$nextView][0] ?? 'Only favorites';
-$nextViewTitle = $viewLabels[$nextView][1] ?? '';
+$nextViewLabel = $viewLabels[$view][0] ?? 'All';
+$nextViewTitle = $viewLabels[$view][1] ?? '';
 
 $cats = $this->categories();
 $favRows = [];

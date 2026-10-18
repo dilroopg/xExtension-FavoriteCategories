@@ -50,11 +50,11 @@ extension. Tested on FreshRSS 1.30.1 / PHP 8.4.
 
 The star *is* the button, and its icon shows which view you're in. Clicking cycles:
 
-| star | view | sidebar | stream |
-|---|---|---|---|
-| ☆ hollow | **everything** | none of your categories are filtered by this extension | nothing filtered |
-| ★ filled | **favorites only** | only favorited categories are listed | only articles from favorited categories |
-| ★̸ slashed | **favorites filtered out** | favorited categories are removed | only articles from the rest |
+| star | view | button reads | sidebar | stream |
+|---|---|---|---|---|
+| ☆ hollow | **everything** | **All** | none of your categories are filtered by this extension | nothing filtered |
+| ★ filled | **favorites only** | **Only favorites** | only favorited categories are listed | only articles from favorited categories |
+| ★̸ slashed | **favorites filtered out** | **No favorites** | favorited categories are removed | only articles from the rest |
 
 The filtered views **remove** the rows they filter out rather than dimming them, so the sidebar shows
 exactly what the stream is showing. One more click on the star brings everything back.
@@ -203,6 +203,24 @@ encouraged.** The parts worth reading are `store.php` (the whole persistent stat
 the comment at the top explaining the non-conflict contract).
 
 ## Changelog
+
+**1.2.5** — the button label names the state you are in, and matches the eye button's size.
+
+1.2.4 flipped the labels to name the *destination* — what you would see after clicking. That turned
+out to be unreadable in practice: the star told you where you were going while you were looking at
+something else, so the label never matched the page.
+
+The label now names what is on screen **right now**:
+
+| You are looking at | Button reads |
+|---|---|
+| everything, no filter | **All** |
+| just your favorites | **Only favorites** |
+| favorites removed | **No favorites** |
+
+The tooltip says the same thing in a sentence, and the label is now the same text size as the
+category-hiding extension's eye button — it was 0.92em against the eye's 0.88em, so the two
+buttons disagreed in the shared sidebar row. Clicking still cycles in the same order.
 
 **1.2.4** — the button labels now name the destination.
 
