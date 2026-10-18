@@ -40,6 +40,21 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			Minz_Log::warning('FavoriteCategories: state store unavailable: ' . $e->getMessage());
 		}
 
+		// Self-heal the pinned order. A favorite made before this feature existed
+		// (or by any path that skipped the pin) is corrected here, and a pin whose
+		// category is no longer a favorite is released. In steady state this reads
+		// two small tables and writes nothing, so it is safe on a page load.
+		if ($this->store()->available()) {
+			try {
+				$r = $this->store()->reconcilePositions();
+				if (!$r['ok']) {
+					Minz_Log::warning('FavoriteCategories: ' . $r['message']);
+				}
+			} catch (Throwable $e) {
+				Minz_Log::warning('FavoriteCategories: order reconcile failed: ' . $e->getMessage());
+			}
+		}
+
 		// JsVars fires exactly once per page from the page head. The payload is
 		// category ids only, so it cannot grow with subscription count.
 		$this->registerHook(Minz_HookType::JsVars, [$this, 'injectJsVars']);
@@ -153,6 +168,14 @@ class FavoriteCategoriesExtension extends Minz_Extension
 		if (!$sweep['ok']) {
 			return 'Favorite Categories: ' . $sweep['message'] . '. Nothing was changed and the '
 				. 'extension was left enabled so it can be fixed from its settings page.';
+		}
+
+		// Ordering is restored last, and a failure here refuses the disable: a
+		// category left pinned at the top with no snapshot would be stuck there
+		// with nothing left to restore it from.
+		if (!$this->store()->restoreAllPositions()) {
+			return 'Favorite Categories: the original category order could not be restored, '
+				. 'so the extension was left enabled so it can be fixed from its settings page.';
 		}
 		$this->store()->checkpoint('disabled');
 		return true;

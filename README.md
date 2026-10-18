@@ -130,8 +130,12 @@ preview and an "Unsaved changes" line until you commit.
 
 ## What it writes
 
-**Light:** nothing. **Strict:** one column on every feed — visibility — with the previous value
-recorded first and put back afterwards. Nothing else about a feed is touched.
+**Always:** one attribute on a favorited category — its `position`, which is how core orders the
+sidebar. The previous value is recorded first and put back on unfavorite, so the original order
+returns exactly (including the case where it had no position at all).
+
+**Light:** nothing else. **Strict:** additionally one column on every feed — visibility — with the
+previous value recorded first and put back afterwards. Nothing else about a feed is touched.
 
 Its state lives in its own SQLite file —
 `data/users/<your user>/extensions/FavoriteCategories/state.sqlite` — holding which categories are
@@ -192,6 +196,24 @@ encouraged.** The parts worth reading are `store.php` (the whole persistent stat
 the comment at the top explaining the non-conflict contract).
 
 ## Changelog
+
+**1.2.0** — favorites are pinned, tagged, and the filters actually filter.
+
+- **Favorites sort to the top.** Favoriting writes the category's `position` (the attribute core
+  orders the sidebar by), snapshotting the old value and restoring it exactly on unfavorite. A
+  reconcile on load pins anything that was favorited before this existed, and releases a pin whose
+  category is no longer a favorite — it writes nothing in steady state.
+- **A "favorite" tag** on every favorited category, in every view, styled like the tag a
+  category-hiding extension puts on its own rows.
+- **The filtered views now hide instead of dimming.** *Only favorites* removes non-favorites and
+  *Hide favorites* removes the favorites — `display: none`, not `opacity`. Rows another extension
+  hid are never selected, so a category that is both hidden and favorited stays as that extension
+  left it.
+- **The state directory repairs itself.** A directory created by a different user than the web
+  server (root, from an unpack or a CLI run) previously left the store unopenable, so favoriting did
+  nothing and logged a SQLSTATE error. Ownership and mode are now repaired on every open, including
+  SQLite's `-wal`/`-shm` files, and the settings page says plainly if the filesystem still refuses.
+  Unpack and enable is the whole install again.
 
 **1.1.0** — Strict mode.
 

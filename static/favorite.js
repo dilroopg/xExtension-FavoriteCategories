@@ -101,13 +101,13 @@
 		var rules = [];
 		for (var n = 0; n < favs.length; n++) {
 			var id = favs[n];
-			// 'only': everything that is NOT a favorite recedes
-			// 'without': the favorites themselves recede
-			// both are reachable only on rows we are allowed to touch
+			// 'only': everything that is NOT a favorite is removed outright.
+			// The NOT_HIDDEN guard means a row hidden by another extension is never
+			// matched, so its display stays whatever that extension decided.
 			rules.push('html[data-fc-view="only"] li.tree-folder.category' + NOT_HIDDEN
-				+ ':not([data-fc-fav="1"]) { opacity: .32; }');
+				+ ':not([data-fc-fav="1"]) { display: none !important; }');
 			rules.push('html[data-fc-view="without"] li.tree-folder.category[data-fc-fav="1"]'
-				+ NOT_HIDDEN + ' { opacity: .32; }');
+				+ NOT_HIDDEN + ' { display: none !important; }');
 			rules.push('li.tree-folder.category#c_' + id + NOT_HIDDEN
 				+ '[data-fc-fav="1"] > .tree-folder-title { color: #d9a13b; }');
 		}

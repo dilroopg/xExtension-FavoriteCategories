@@ -38,21 +38,22 @@ html[data-fc-view="without"] .fc-stream-out {
  * apparently empty sidebar. Hidden rows are excluded by :not(), so their
  * opacity is whatever the hiding extension decided.
  */
+/* 'only' means only: a non-favorite row is removed, not dimmed. The
+ * :not([data-fc-hidden="1"]) guard is the whole coordination mechanism — a row
+ * another extension hid is never selected here, so its display is untouched and
+ * hidden still wins for a category that is both favorited and hidden. */
 html[data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"]):not([data-fc-fav="1"]) {
-	opacity: 0.32;
-	transition: opacity 0.15s ease;
-}
-html[data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"]):not([data-fc-fav="1"]):hover {
-	opacity: 0.7;
+	display: none !important;
 }
 
-/* ---- 'without': the favorites themselves recede ---------------------- */
+/* ---- 'without': the favorites are removed ---------------------------- */
+/*
+ * The label says hide, so it hides. Same guard as 'only': a row another
+ * extension hid is never selected, so its display stays that extension's
+ * decision and hidden still wins for a category that is both.
+ */
 html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] {
-	opacity: 0.32;
-	transition: opacity 0.15s ease;
-}
-html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"]:hover {
-	opacity: 0.7;
+	display: none !important;
 }
 
 /* ---- the favorites are marked in both filtered views ----------------- */
@@ -479,4 +480,24 @@ html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[d
 	.fc-row .fc-feeds {
 		grid-column: 1 / 2;
 	}
+}
+
+/* ---- the "favorite" tag, shown in every view ------------------------ */
+/*
+ * Mirrors the badge a hiding extension puts on its rows, so a favorited category
+ * is labelled rather than only tinted. Colour comes from the same gold used for
+ * the title, and currentColor makes the border follow it.
+ */
+li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] > .tree-folder-title::after {
+	content: "favorite";
+	font-size: 0.62em;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.7;
+	margin-left: 0.45em;
+	padding: 0 0.3em;
+	border: 1px solid currentColor;
+	border-radius: 3px;
+	vertical-align: middle;
+	color: #d9a13b;
 }
