@@ -138,8 +138,29 @@ Its state lives in its own SQLite file —
 favorites, the current view, and the two display options. Deleting the extension folder leaves that
 file alone; delete the file itself to forget everything.
 
-Disabling the extension has nothing to undo, because nothing was ever written to a feed. Your
-favorites and display options are kept and come back when you re-enable it.
+Disabling restores every feed it changed, then disables. If the restore cannot finish the disable is
+**refused** and the extension stays enabled so you can fix it from its settings page. Your favorites
+and display options are kept either way, and come back when you re-enable it.
+
+## What it costs
+
+All cost is at the moment you click — page loads stay at normal speed, and nothing runs in the
+background (no cron, no external service, no network calls). Light mode costs nothing at all; every
+number below is Strict.
+
+- **Favoriting or unfavoriting** re-runs the sweep, because it changes what the feeds should look
+  like: favorites move to *Show in important feeds*, everything else to the demote target.
+- **Switching view or changing the demote setting** sweeps too. Entering *only favorites* one way
+  and leaving it the other means two passes.
+- **Cost scales with your feed count, not with how many categories you favorite** — every feed has
+  to be set to one of the two values. Expect a couple of seconds at ~1000 feeds, on a local
+  instance; a slow host or a remote database will take longer.
+- **Hidden feeds keep downloading.** None of this changes what is fetched, so unread counts can
+  climb for categories you have filtered out.
+
+While in Strict, the feeds really are set to those visibility values for every client, phone
+included. That is what makes the filter true off this machine, and it is exactly why leaving Strict
+restores them.
 
 ## Troubleshooting
 
