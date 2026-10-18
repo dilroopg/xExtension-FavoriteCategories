@@ -204,6 +204,11 @@ the comment at the top explaining the non-conflict contract).
 
 ## Changelog
 
+**1.2.2** — the view button says *Show* / *Hide* / *All*.
+
+The three labels named the states at length ("Show favorites", "Hide favorites", "Show all"). They
+are now one word each, in the sidebar star and the settings page. Behaviour is unchanged.
+
 **1.2.1** — README corrections.
 
 - The README described the old dimming behaviour in five places, contradicting 1.2.0's real

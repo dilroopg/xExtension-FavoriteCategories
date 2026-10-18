@@ -30,12 +30,12 @@ $url = _url('extension', 'configure', 'e', urlencode($this->getName()));
 $view = $store->view();
 $nextView = $store->nextView();
 $viewLabels = [
-	'all' => ['Show favorites only', 'Filter down to just your favorite categories'],
-	'only' => ['Hide favorites', 'Filter your favorites out instead'],
-	'without' => ['Show all', 'Stop filtering and show everything'],
+	'all' => ['Show', 'Filter down to just your favorite categories'],
+	'only' => ['Hide', 'Filter your favorites out instead'],
+	'without' => ['All', 'Stop filtering and show everything'],
 ];
 $viewLabel = ['all' => 'everything', 'only' => 'favorites only', 'without' => 'favorites filtered out'][$view] ?? 'everything';
-$nextViewLabel = $viewLabels[$nextView][0] ?? 'Show favorites only';
+$nextViewLabel = $viewLabels[$nextView][0] ?? 'Show';
 $nextViewTitle = $viewLabels[$nextView][1] ?? '';
 
 $cats = $this->categories();
