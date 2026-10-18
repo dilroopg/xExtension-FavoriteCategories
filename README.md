@@ -55,11 +55,13 @@ The star *is* the button, and its icon shows which view you're in. Clicking cycl
 | star | view | button reads | sidebar | stream |
 |---|---|---|---|---|
 | ☆ hollow | **everything** | **Mixed** | none of your categories are filtered by this extension | nothing filtered |
-| ★ filled | **favorites only** | **Just favorites** | only favorited categories are listed | only articles from favorited categories |
-| ★̸ slashed | **favorites filtered out** | **Hide favorites** | favorited categories are removed | only articles from the rest |
+| ★ filled | **favorites only** | **Just Favorites** | only favorited categories are listed | only articles from favorited categories |
+| ★̸ slashed | **favorites filtered out** | **Hide Favorites** | favorited categories are removed | only articles from the rest |
 
-The filtered views **remove** the rows they filter out rather than dimming them, so the sidebar shows
-exactly what the stream is showing. One more click on the star brings everything back.
+By default the filtered views **remove** the rows they filter out, so the sidebar shows exactly what
+the stream is showing. A setting can switch that to **dimming** instead: the same rows stay in place at
+32% opacity, so a stray click can never leave an apparently empty sidebar. One more click on the
+button brings everything back either way.
 
 Favorited categories carry a small **favorite** tag in every view, so you can tell at a glance which
 rows the filter is acting on — including in *everything*, where nothing is filtered at all.
@@ -68,6 +70,11 @@ rows the filter is acting on — including in *everything*, where nothing is fil
 
 The settings page has one **Symbol and wording** dropdown. It changes only what you see; nothing
 about how the extension stores or filters changes either way.
+
+| Setting | Values | Default |
+|---|---|---|
+| **Symbol and wording** | Star / Pin (see below) | Star |
+| **Filtered categories** | **Hidden** (removed) / **Dimmed** (faded, kept in place) | Hidden |
 
 | Option | Button glyph | Button labels | Row tag |
 |---|---|---|---|
@@ -226,6 +233,14 @@ the comment at the top explaining the non-conflict contract).
   *No favorites* is now **Hide Favorites**.
 - The Subscription page's per-category button and the right-click menu item now follow the same
   setting instead of always drawing a star.
+
+**1.3.1** — a dim-instead-of-hide option for the filtered views.
+
+- **Filtered categories: Hidden or Dimmed.** A new dropdown on the settings page. *Hidden* (the
+  default) removes the filtered category rows and articles; *Dimmed* keeps them in place at 32%
+  opacity, so the sidebar can never look empty by accident. Both the sidebar and the stream follow it.
+- The dim rules are regenerated alongside the per-id hide rules, so a theme that the static
+  stylesheet cannot reach still dims correctly.
 
 ## Changelog
 

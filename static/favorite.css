@@ -32,6 +32,12 @@ html[data-fc-view="only"] .fc-stream-out,
 html[data-fc-view="without"] .fc-stream-out {
 	display: none !important;
 }
+/* Dim mode, same rows: kept in the stream but faded. */
+html[data-fc-filter="dim"][data-fc-view="only"] .fc-stream-out,
+html[data-fc-filter="dim"][data-fc-view="without"] .fc-stream-out {
+	display: flex !important;
+	opacity: 0.32;
+}
 
 /* ---- 'only': everything that is not a favorite recedes ---------------
  * Dimmed, not removed: a stray click on the star can never leave you with an
@@ -54,6 +60,18 @@ html[data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"]):not(
  */
 html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] {
 	display: none !important;
+}
+
+/* ---- dim mode: the same rows filtered, but left in place ------------- */
+/* The `filterstyle` setting adds html[data-fc-filter="dim"]. Both rules above
+ * still apply display:none; these two override it with higher specificity
+ * (extra attribute selector) and dim instead. The :not([data-fc-hidden="1"])
+ * guard is kept for the same reason as above — a row another extension hid is
+ * never ours to show, so dim mode cannot bring a hidden row back. */
+html[data-fc-filter="dim"][data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"]):not([data-fc-fav="1"]),
+html[data-fc-filter="dim"][data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] {
+	display: list-item !important;
+	opacity: 0.32;
 }
 
 /* ---- the favorites are marked in both filtered views ----------------- */

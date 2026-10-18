@@ -283,6 +283,14 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 			</label>
 
 			<label class="fc-label-field">
+				<span>Filtered categories</span>
+				<select name="filterstyle" class="fc-label-input" data-fc-filterstyle>
+					<option value="hide" <?= $store->filterStyle() === 'hide' ? 'selected' : '' ?>>Hidden &mdash; removed from the list</option>
+					<option value="dim" <?= $store->filterStyle() === 'dim' ? 'selected' : '' ?>>Dimmed &mdash; kept, but faded</option>
+				</select>
+			</label>
+
+			<label class="fc-label-field">
 				<span>Label text (used by "Label and number")</span>
 				<input type="text" name="label" class="fc-label-input"
 					value="<?= htmlspecialchars($rowLabel, ENT_QUOTES) ?>"

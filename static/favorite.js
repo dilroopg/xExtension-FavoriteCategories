@@ -79,6 +79,8 @@
 	var NOUN = VOCAB === 'favorites' ? 'favorite' : 'pinned';
 	var NOUN_PL = VOCAB === 'favorites' ? 'favorites' : 'pinned';
 	var NOUN_CAP = VOCAB === 'favorites' ? 'Favorites' : 'Pinned';
+	// 'hide' (default) removes filtered rows; 'dim' leaves them at 32% opacity.
+	var DIM = FC.filterStyle === 'dim';
 
 	var isFav = {};
 	for (var i = 0; i < favs.length; i++) {
@@ -92,6 +94,7 @@
 	// Set immediately, before any DOM walk, so the CSS can filter at first
 	// paint. This is the only part the filtering depends on.
 	root.setAttribute('data-fc-view', view);
+	root.setAttribute('data-fc-filter', DIM ? 'dim' : 'hide');
 	root.setAttribute('data-fc-favs', favs.join(','));
 	// The badge word, from the vocabulary setting. A CSS custom property, not
 	// an attribute: attributes do not inherit down the tree, so a rule on the
@@ -123,6 +126,15 @@
 				+ ':not([data-fc-fav="1"]) { display: none !important; }');
 			rules.push('html[data-fc-view="without"] li.tree-folder.category[data-fc-fav="1"]'
 				+ NOT_HIDDEN + ' { display: none !important; }');
+			// Dim mode. These MUST be regenerated alongside the two rules above:
+			// they are per-id and injected after the stylesheet, so a CSS-only
+			// override would lose to them and dim mode would silently do nothing.
+			if (DIM) {
+				rules.push('html[data-fc-filter="dim"][data-fc-view="only"] li.tree-folder.category' + NOT_HIDDEN
+					+ ':not([data-fc-fav="1"]) { display: list-item !important; opacity: 0.32; }');
+				rules.push('html[data-fc-filter="dim"][data-fc-view="without"] li.tree-folder.category[data-fc-fav="1"]'
+					+ NOT_HIDDEN + ' { display: list-item !important; opacity: 0.32; }');
+			}
 			rules.push('li.tree-folder.category#c_' + id + NOT_HIDDEN
 				+ '[data-fc-fav="1"] > .tree-folder-title { color: #d9a13b; }');
 		}

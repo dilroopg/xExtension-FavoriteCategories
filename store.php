@@ -832,6 +832,36 @@ final class FavoriteCategoriesStore
 	public const VOCABULARIES = ['pinned', 'favorites'];
 	public const ICONS = ['pin', 'star'];
 
+	// ------------------------------------------------------------ dim or hide
+	//
+	//   hide  filtered rows are removed (display:none) — the 1.2.x behaviour
+	//   dim   filtered rows stay in place at reduced opacity
+	//
+	// Dimming is the gentler option: a stray click can never leave an apparently
+	// empty sidebar. It is opt-in and defaults to hide.
+
+	public const FILTER_STYLES = ['hide', 'dim'];
+
+	public function filterStyle(): string
+	{
+		$v = $this->getMeta('filterstyle', 'hide');
+		return in_array($v, self::FILTER_STYLES, true) ? $v : 'hide';
+	}
+
+	/** @return array{ok:bool,message:string} */
+	public function setFilterStyle(string $what): array
+	{
+		if (!in_array($what, self::FILTER_STYLES, true)) {
+			return ['ok' => false, 'message' => 'Refused: "' . $what . '" is not a filter option.'];
+		}
+		if (!$this->setMeta('filterstyle', $what)) {
+			return ['ok' => false, 'message' => 'Could not save the filter option.'];
+		}
+		return ['ok' => true, 'message' => $what === 'dim'
+			? 'Saved: filtered categories are dimmed instead of hidden.'
+			: 'Saved: filtered categories are hidden.'];
+	}
+
 	public function vocabulary(): string
 	{
 		$v = $this->getMeta('vocab', 'favorites');

@@ -102,6 +102,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			// vocab and icon separately, but they only ever move together.
 			'look' => $this->store()->vocabulary() === 'pinned' && $this->store()->icon() === 'pin'
 				? 'pinned' : 'favorites',
+			'filterStyle' => $this->store()->filterStyle(),
 			'mode' => $this->store()->mode(),
 			// _url() returns an HTML-escaped string ("&amp;"), which is correct
 			// in markup and WRONG in a JS string: fetch() would send a parameter
@@ -554,6 +555,15 @@ class FavoriteCategoriesExtension extends Minz_Extension
 					$ri = $this->store()->setIcon($look === 'pinned' ? 'pin' : 'star');
 					if (!$rv['ok'] || !$ri['ok']) {
 						Minz_Request::bad($rv['ok'] ? $ri['message'] : $rv['message'], $this->selfUrl());
+						return;
+					}
+				}
+				// Hide or dim, on the same form and Save.
+				$filterStyle = Minz_Request::paramStringNull('filterstyle', true);
+				if ($filterStyle !== null && trim($filterStyle) !== '') {
+					$rf = $this->store()->setFilterStyle(trim($filterStyle));
+					if (!$rf['ok']) {
+						Minz_Request::bad($rf['message'], $this->selfUrl());
 						return;
 					}
 				}
