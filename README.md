@@ -66,20 +66,27 @@ button brings everything back either way.
 Favorited categories carry a small **favorite** tag in every view, so you can tell at a glance which
 rows the filter is acting on — including in *everything*, where nothing is filtered at all.
 
-## Star or pin
+## Display settings
 
-The settings page has one **Symbol and wording** dropdown. It changes only what you see; nothing
-about how the extension stores or filters changes either way.
+Two dropdowns on the settings page. Both change only what you see — neither changes what is stored,
+which feeds are touched, or how the filtering works.
 
 | Setting | Values | Default |
 |---|---|---|
-| **Symbol and wording** | Star / Pin (see below) | Star |
-| **Filtered categories** | **Hidden** (removed) / **Dimmed** (faded, kept in place) | Hidden |
+| **Symbol and wording** | Star or Pin (table below) | Star |
+| **Filtered categories** | **Hidden** — removed from the list · **Dimmed** — kept, faded to 32% | Hidden |
+
+**Symbol and wording** swaps the glyph and the noun together:
 
 | Option | Button glyph | Button labels | Row tag |
 |---|---|---|---|
 | **Star** (default) | ☆ hollow / ★ filled / ★̸ slashed | Mixed · Just Favorites · Hide Favorites | FAVORITE |
 | **Pin** | pushpin, hollow / filled / slashed | Mixed · Just Pinned · Hide Pinned | PINNED |
+
+**Filtered categories** decides what happens to rows the current view filters out — in the sidebar
+and in the stream alike. *Hidden* removes them; *Dimmed* leaves them in place at 32% opacity, so a
+stray click can never leave an apparently empty sidebar. Rows another extension has hidden are
+never shown by either option.
 
 Internally the extension keeps its original `favorite` names — the state file, the CSS hooks and the
 `data-fc-fav` attribute the Hidden Categories sibling reads. That is deliberate and is not a bug.
@@ -224,15 +231,7 @@ encouraged.** The parts worth reading are `store.php` (the whole persistent stat
 `extension.php` (`injectJsVars()`, the page payload) and `static/favorite.js` (the filtering, and
 the comment at the top explaining the non-conflict contract).
 
-**1.3.0** — one display setting, and shorter button labels.
-
-- **Symbol and wording dropdown.** Pick *Star* (the 1.x look, the default) or *Pin*: the button then
-  draws a pushpin and says **Just Pinned / Hide Pinned**, and the row tag reads **PINNED**. Stored
-  data, filtering behaviour and internals are identical either way.
-- **Button labels shortened.** *All* is now **Mixed**, *Only favorites* is now **Just Favorites**, and
-  *No favorites* is now **Hide Favorites**.
-- The Subscription page's per-category button and the right-click menu item now follow the same
-  setting instead of always drawing a star.
+## Changelog
 
 **1.3.1** — a dim-instead-of-hide option for the filtered views.
 
@@ -242,7 +241,15 @@ the comment at the top explaining the non-conflict contract).
 - The dim rules are regenerated alongside the per-id hide rules, so a theme that the static
   stylesheet cannot reach still dims correctly.
 
-## Changelog
+**1.3.0** — one display setting, and shorter button labels.
+
+- **Symbol and wording dropdown.** Pick *Star* (the 1.x look, the default) or *Pin*: the button then
+  draws a pushpin and says **Just Pinned / Hide Pinned**, and the row tag reads **PINNED**. Stored
+  data, filtering behaviour and internals are identical either way.
+- **Button labels shortened.** *All* is now **Mixed**, *Only favorites* is now **Just Favorites**, and
+  *No favorites* is now **Hide Favorites**.
+- The Subscription page's per-category button and the right-click menu item now follow the same
+  setting instead of always drawing a star.
 
 **1.2.5** — the button label names the state you are in, and matches the eye button's size.
 
