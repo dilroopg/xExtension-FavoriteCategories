@@ -29,13 +29,14 @@ $url = _url('extension', 'configure', 'e', urlencode($this->getName()));
 // button can never disagree about what "next click" means
 $view = $store->view();
 $nextView = $store->nextView();
+// Labels name the DESTINATION: what you will be looking at after the click.
 $viewLabels = [
-	'all' => ['Show', 'Filter down to just your favorite categories'],
+	'all' => ['Only favorites', 'Narrow the sidebar and stream down to your favorite categories'],
 	'only' => ['Hide', 'Filter your favorites out instead'],
 	'without' => ['Show all', 'Stop filtering and show everything'],
 ];
 $viewLabel = ['all' => 'everything', 'only' => 'favorites only', 'without' => 'favorites filtered out'][$view] ?? 'everything';
-$nextViewLabel = $viewLabels[$nextView][0] ?? 'Show';
+$nextViewLabel = $viewLabels[$nextView][0] ?? 'Only favorites';
 $nextViewTitle = $viewLabels[$nextView][1] ?? '';
 
 $cats = $this->categories();

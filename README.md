@@ -204,11 +204,20 @@ the comment at the top explaining the non-conflict contract).
 
 ## Changelog
 
-**1.2.3** — the view button says *Show* / *Hide* / *Show all*.
+**1.2.4** — the button labels now name the destination.
 
-The three labels named each state at length ("Show favorites", "Hide favorites", "Show all").
-They are now one or two words each — *Show all* rather than a bare *All*, so the label says what
-the click does — in the sidebar star and the settings page. Behaviour is unchanged.
+The labels named the *action*, so the normal state's button said *Show* while the click actually
+filtered **down** to favorites only — a hiding action wearing a showing word.
+
+Each label now says what you will be looking at **after** the click:
+
+| Showing now | Button says | After clicking |
+|---|---|---|
+| everything, no filter | **Only favorites** | just your favorite categories |
+| just your favorites | **Hide** | favorites removed |
+| favorites removed | **Show all** | everything, no filter |
+
+Same three states, same cycle, same filtering. Labels and tooltips only.
 
 **1.2.1** — README corrections.
 
