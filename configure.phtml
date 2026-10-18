@@ -32,7 +32,7 @@ $nextView = $store->nextView();
 $viewLabels = [
 	'all' => ['Show', 'Filter down to just your favorite categories'],
 	'only' => ['Hide', 'Filter your favorites out instead'],
-	'without' => ['All', 'Stop filtering and show everything'],
+	'without' => ['Show all', 'Stop filtering and show everything'],
 ];
 $viewLabel = ['all' => 'everything', 'only' => 'favorites only', 'without' => 'favorites filtered out'][$view] ?? 'everything';
 $nextViewLabel = $viewLabels[$nextView][0] ?? 'Show';

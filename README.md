@@ -204,10 +204,11 @@ the comment at the top explaining the non-conflict contract).
 
 ## Changelog
 
-**1.2.2** — the view button says *Show* / *Hide* / *All*.
+**1.2.3** — the view button says *Show* / *Hide* / *Show all*.
 
-The three labels named the states at length ("Show favorites", "Hide favorites", "Show all"). They
-are now one word each, in the sidebar star and the settings page. Behaviour is unchanged.
+The three labels named each state at length ("Show favorites", "Hide favorites", "Show all").
+They are now one or two words each — *Show all* rather than a bare *All*, so the label says what
+the click does — in the sidebar star and the settings page. Behaviour is unchanged.
 
 **1.2.1** — README corrections.
 

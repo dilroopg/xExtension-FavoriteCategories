@@ -246,7 +246,7 @@
 		// label names what the NEXT click does; the icon shows the CURRENT state
 		all: { text: 'Show', title: 'Favorites filter nothing right now \u2014 click to show only favorites' },
 		only: { text: 'Hide', title: 'You are seeing only favorites \u2014 click to filter them out instead' },
-		without: { text: 'All', title: 'Everything except favorites is showing \u2014 click to show everything again' }
+		without: { text: 'Show all', title: 'Everything except favorites is showing \u2014 click to show everything again' }
 	};
 
 	// ---- the button's own content ----------------------------------------
