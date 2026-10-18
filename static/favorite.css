@@ -1,0 +1,443 @@
+/*
+ * Favorite Categories — the filtering and the chrome.
+ *
+ * Everything keys off attributes on <html> that favorite.js sets from the page
+ * payload before first paint:
+ *
+ *   html[data-fc-view="only"|"without"]   which filter is on
+ *   html[data-fc-favs="1,4,9"]            which categories are favorites
+ *
+ * THE NON-CONFLICT RULE
+ * ---------------------
+ * Another extension may be hiding sidebar rows. No rule in this file may ever
+ * take a row a hiding extension has claimed:
+ *
+ *   - This file never writes `display` on a category row. Dimming is `opacity`,
+ *     which composes with someone else's `display:none` instead of fighting it.
+ *   - Every rule that targets a category row carries `:not([data-fc-hidden="1"])`,
+ *     so a hidden row is never re-styled by us. When no hiding extension is
+ *     installed the attribute is absent, `:not()` matches, and filtering works
+ *     exactly as it would standalone.
+ *
+ * Nothing here names another extension. The only contract is that attribute.
+ */
+
+/* ---- the stream: articles follow the filter ---------------------------
+ * Stream items carry data-category="<id>"; favorite.js toggles .fc-stream-out
+ * on them, which is one class on rows we generated nothing for. display:none is
+ * safe HERE because these are article rows, not sidebar category rows, and no
+ * other extension in this family manages them.
+ */
+html[data-fc-view="only"] .fc-stream-out,
+html[data-fc-view="without"] .fc-stream-out {
+	display: none !important;
+}
+
+/* ---- 'only': everything that is not a favorite recedes ---------------
+ * Dimmed, not removed: a stray click on the star can never leave you with an
+ * apparently empty sidebar. Hidden rows are excluded by :not(), so their
+ * opacity is whatever the hiding extension decided.
+ */
+html[data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"]):not([data-fc-fav="1"]) {
+	opacity: 0.32;
+	transition: opacity 0.15s ease;
+}
+html[data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"]):not([data-fc-fav="1"]):hover {
+	opacity: 0.7;
+}
+
+/* ---- 'without': the favorites themselves recede ---------------------- */
+html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] {
+	opacity: 0.32;
+	transition: opacity 0.15s ease;
+}
+html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"]:hover {
+	opacity: 0.7;
+}
+
+/* ---- the favorites are marked in both filtered views ----------------- */
+html[data-fc-view="only"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] > .tree-folder-title,
+html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[data-fc-fav="1"] > .tree-folder-title {
+	color: #d9a13b;
+}
+
+/* ---- the banner: says the stream is filtered, one click out ---------- */
+.fc-banner {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	margin: 0 0 0.6em;
+	padding: 0.45em 0.75em;
+	border-radius: 6px;
+	font-size: 0.92em;
+	background: rgba(120, 120, 120, 0.13);
+	border-left: 3px solid #d9a13b;
+	opacity: 0.9;
+}
+.fc-banner button {
+	margin-left: auto;
+	cursor: pointer;
+	font: inherit;
+	padding: 0.15em 0.6em;
+	border-radius: 4px;
+	border: 1px solid rgba(128, 128, 128, 0.45);
+	background: transparent;
+	color: inherit;
+}
+.fc-banner button:hover {
+	background: rgba(128, 128, 128, 0.18);
+}
+
+/* ---- THE SHARED ROW, above the sidebar tree --------------------------
+ * This bar is shared ground: whichever extension gets there first creates it,
+ * and every control appends into it. Nothing here names another extension.
+ *
+ * The child rule is what makes "both installed" look right without either side
+ * knowing about the other:
+ *   one child   -> takes the whole width (identical to a lone installation)
+ *   two children -> equal halves, with the row's gap between them
+ * The gap is deliberately wider than a hairline so two buttons with different
+ * meanings are never a misclick apart.
+ */
+.rs-bar {
+	padding: 0.35em 0.6em 0.45em;
+}
+.rs-bar-row {
+	display: flex;
+	align-items: stretch;
+	gap: 0.5em;
+}
+.rs-bar-row > * {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* ---- the star button -------------------------------------------------- */
+.fc-view-btn {
+	width: 100%;
+	cursor: pointer;
+	font: inherit;
+	font-size: 0.88em;
+	padding: 0.35em 0.6em;
+	border-radius: 5px;
+	border: 1px solid rgba(128, 128, 128, 0.4);
+	background: rgba(128, 128, 128, 0.1);
+	color: inherit;
+	text-align: left;
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+.fc-view-btn .fc-ico {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 1.15em;
+	height: 1.15em;
+	color: #d9a13b;
+}
+.fc-view-btn .fc-ico svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+.fc-view-btn .fc-txt {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fc-view-btn[data-fc-state="all"] .fc-ico {
+	opacity: 0.7;
+}
+.fc-view-btn:hover {
+	background: rgba(128, 128, 128, 0.2);
+}
+.fc-view-btn[data-fc-state="only"] {
+	border-color: rgba(217, 161, 59, 0.65);
+	background: rgba(217, 161, 59, 0.12);
+	font-weight: 600;
+}
+.fc-view-btn[data-fc-state="without"] {
+	border-color: rgba(217, 161, 59, 0.4);
+}
+
+/* ---- the sidebar "Favorites (N)" section -----------------------------
+ * A normal .tree-folder so themes and collapse state apply unchanged.
+ */
+#fc-fav-tree .tree-folder-items.fc-open {
+	display: block;
+}
+.fc-tree > .tree-folder-title .fc-row-label,
+.fc-tree > .tree-folder-title .fc-row-num {
+	vertical-align: middle;
+}
+.fc-tree > .tree-folder-title .fc-row-num {
+	margin-left: 0.4em;
+	opacity: 0.75;
+}
+.fc-tree .fc-item {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+}
+.fc-tree .fc-item .fc-name {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fc-tree .fc-item .fc-count {
+	opacity: 0.55;
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+.fc-tree .fc-unfav {
+	flex: 0 0 auto;
+	cursor: pointer;
+	line-height: 1;
+	padding: 0 0.35em;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	opacity: 0.5;
+	font-size: 1.05em;
+}
+.fc-tree .fc-unfav:hover,
+.fc-tree .fc-unfav:focus-visible {
+	opacity: 1;
+}
+
+/* ---- subscription management: star per category box ------------------ */
+.fc-sub-btn {
+	margin-left: 0.5em;
+	font-size: 0.9em;
+	padding: 0.05em 0.5em;
+	vertical-align: middle;
+	line-height: 1.2;
+}
+.fc-sub-btn.fc-sub-on {
+	color: #d9a13b;
+	border-color: rgba(217, 161, 59, 0.7);
+}
+
+/* ---- settings page ---------------------------------------------------- */
+.fc-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.fc-row {
+	display: grid;
+	grid-template-columns: auto 1fr auto auto;
+	align-items: center;
+	gap: 0.75em;
+	padding: 0.4em 0.6em;
+	border-radius: 5px;
+}
+.fc-row:nth-child(even) {
+	background: rgba(128, 128, 128, 0.07);
+}
+.fc-row:hover {
+	background: rgba(128, 128, 128, 0.14);
+}
+.fc-row .fc-name {
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fc-row .fc-feeds {
+	opacity: 0.6;
+	font-size: 0.88em;
+	white-space: nowrap;
+}
+.fc-row .fc-act {
+	cursor: pointer;
+	font: inherit;
+	font-size: 0.88em;
+	padding: 0.15em 0.7em;
+	border-radius: 4px;
+	border: 1px solid rgba(128, 128, 128, 0.45);
+	background: transparent;
+	color: inherit;
+	min-width: 4.2em;
+}
+.fc-row .fc-act:hover {
+	background: rgba(128, 128, 128, 0.18);
+}
+.fc-row.fc-is-fav .fc-act {
+	border-color: rgba(217, 161, 59, 0.65);
+}
+.fc-row.fc-is-fav .fc-name {
+	color: #d9a13b;
+}
+.fc-empty {
+	padding: 0.9em 0.6em;
+	opacity: 0.75;
+}
+.fc-group-label {
+	margin: 0.9em 0 0.25em;
+	font-size: 0.78em;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	opacity: 0.55;
+}
+.fc-hint {
+	opacity: 0.7;
+	font-size: 0.9em;
+}
+.fc-card {
+	padding: 0.5em 0.6em;
+	border: 1px solid rgba(128, 128, 128, 0.28);
+	border-radius: 6px;
+}
+.fc-details summary {
+	cursor: pointer;
+	opacity: 0.75;
+	font-size: 0.9em;
+}
+.fc-details dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.2em 1em;
+	font-size: 0.9em;
+	margin: 0.5em 0 0;
+	opacity: 0.8;
+}
+.fc-details dt {
+	opacity: 0.7;
+}
+.fc-details dd {
+	margin: 0;
+	word-break: break-all;
+}
+
+/* the three display states, as a radio list */
+.fc-modes {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3em;
+	margin: 0.4em 0 0.6em;
+}
+.fc-mode-radio {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5em;
+	cursor: pointer;
+	padding: 0.3em 0.45em;
+	border-radius: 5px;
+	border: 1px solid transparent;
+}
+.fc-mode-radio:hover {
+	background: rgba(128, 128, 128, 0.1);
+}
+.fc-mode-radio:has(input:checked) {
+	border-color: rgba(217, 161, 59, 0.5);
+	background: rgba(217, 161, 59, 0.08);
+}
+.fc-mode-radio > span {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.3;
+}
+.fc-mode-radio em {
+	font-style: normal;
+	font-size: 0.85em;
+	opacity: 0.65;
+}
+
+/* the label field: caption above, input beside the Save bar */
+.fc-label-field {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 0.2em;
+	min-width: 17em;
+}
+.fc-label-field > span {
+	font-size: 0.86em;
+	opacity: 0.8;
+}
+.fc-label-input {
+	font: inherit;
+	font-size: 0.95em;
+	padding: 0.3em 0.5em;
+	border-radius: 4px;
+	border: 1px solid rgba(128, 128, 128, 0.5);
+	background: rgba(0, 0, 0, 0.12);
+	color: inherit;
+	min-width: 14em;
+}
+.fc-save-bar {
+	display: flex;
+	align-items: center;
+	gap: 0.7em;
+	margin-top: 0.55em;
+	padding-top: 0.55em;
+	border-top: 1px solid rgba(128, 128, 128, 0.18);
+}
+.fc-dirty {
+	font-size: 0.86em;
+	color: #d9a13b;
+}
+
+/* the saved row and the live draft, drawn like the sidebar row */
+.fc-preview,
+.fc-live {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	flex-wrap: wrap;
+	padding: 0.45em 0.5em;
+	margin: 0.35em 0 0;
+	border-radius: 5px;
+	background: rgba(128, 128, 128, 0.1);
+}
+.fc-live {
+	background: rgba(217, 161, 59, 0.1);
+	border: 1px dashed rgba(217, 161, 59, 0.45);
+	margin-bottom: 0.35em;
+}
+.fc-preview-cap,
+.fc-live-cap {
+	font-size: 0.78em;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.55;
+	min-width: 6.5em;
+}
+.fc-preview-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	font-weight: 500;
+	padding: 0.1em 0.4em;
+	border-radius: 4px;
+	background: rgba(0, 0, 0, 0.14);
+	min-width: 5em;
+}
+.fc-preview-row .fc-caret {
+	font-size: 0.8em;
+	opacity: 0.6;
+}
+.fc-preview-row .fc-row-num {
+	opacity: 0.85;
+}
+.fc-preview-none {
+	opacity: 0.5;
+	font-style: italic;
+	font-size: 0.88em;
+}
+.fc-live-msg {
+	font-size: 0.85em;
+	opacity: 0.75;
+}
+
+/* narrow screens: let the row wrap rather than squeeze the name */
+@media (max-width: 640px) {
+	.fc-row {
+		grid-template-columns: 1fr auto;
+		row-gap: 0.2em;
+	}
+	.fc-row .fc-feeds {
+		grid-column: 1 / 2;
+	}
+}
