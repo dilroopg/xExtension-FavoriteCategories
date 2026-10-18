@@ -1,5 +1,7 @@
 # Favorite Categories
 
+Part of [dilroopg's FreshRSS extensions](https://github.com/dilroopg/freshrss-extensions) — see the hub for everything else.
+
 > **Companion: [Hidden Categories](https://github.com/dilroopg/xExtension-HiddenCategories)** — the
 > opposite job: put categories *away* rather than filtering down to a few. The two work together
 > fine and neither needs the other — Favorite removes rows it filters out but never selects a row
