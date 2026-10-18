@@ -1,5 +1,11 @@
 # Favorite Categories
 
+> **Companion: [Hidden Categories](https://github.com/dilroopg/xExtension-HiddenCategories)** — the
+> opposite job: put categories *away* rather than filtering down to a few. The two work together
+> fine and neither needs the other — Favorite only dims rows and skips any row already hidden, and
+> in Strict it never writes to a feed inside a hidden category. Installed together, their buttons
+> share one row above the sidebar.
+
 **Filter your sidebar down to the categories you actually read.** Mark a few categories as
 favorites, then flip one star button to see only those — or everything except those.
 
@@ -163,6 +169,32 @@ That's disclosed so you know what you're installing. **Forking and reading the c
 encouraged.** The parts worth reading are `store.php` (the whole persistent state),
 `extension.php` (`injectJsVars()`, the page payload) and `static/favorite.js` (the filtering, and
 the comment at the top explaining the non-conflict contract).
+
+## Changelog
+
+**1.1.0** — Strict mode.
+
+- Favorites now filter for **every** client, not just the browser: favorites are promoted to *Show
+  in important feeds* and everything else is pushed down, with every previous value snapshotted and
+  restored on unfavorite, mode switch, demote change, or disable.
+- **Where non-favorites go** is a setting, shown only in Strict: *out of the main stream* (−5, still
+  readable in their category) or *gone entirely* (−10, not returned to any client at all — the same
+  as Hidden Categories' Strict).
+- Feeds in a category hidden by another extension are never touched, so a hidden favorite stays
+  hidden and the two extensions can't write the same feed.
+- Light remains the default and still writes nothing.
+
+**1.0.1** — right-click favoriting, and a button content option.
+
+- Right-clicking a category offers *Add to favorites* / *Remove from favorites*. This was missing
+  from 1.0.0. **Requires [RightClickActions](https://github.com/printfuck/xExtension-RightClickActions)**
+  — that menu isn't ours, and FreshRSS has no right-click menu without it. The settings page now
+  says so.
+- **Star button shows**: symbol and text, symbol only, or text only.
+- Button text wraps instead of clipping when two extensions share the row.
+
+**1.0.0** — first release. Three-state star (everything / only favorites / favorites filtered out),
+favoriting from the settings list, the subscription page star, and a right-click item; Light-only.
 
 ## Licence
 
