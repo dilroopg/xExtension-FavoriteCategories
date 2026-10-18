@@ -70,6 +70,16 @@
 	var meta = FC.meta && typeof FC.meta === 'object' ? FC.meta : {};
 	var view = FC.view === 'only' || FC.view === 'without' ? FC.view : 'all';
 	var next = FC.next || 'all';
+
+	// The `look` setting decides both the noun and the glyph; they are never set
+	// independently. "favorites" is the original 1.x star look and the default.
+	// Declared here, at the top, because the badge (set below) needs NOUN_CAP
+	// before the button code runs.
+	var VOCAB = FC.look === 'pinned' ? 'pinned' : 'favorites';
+	var NOUN = VOCAB === 'favorites' ? 'favorite' : 'pinned';
+	var NOUN_PL = VOCAB === 'favorites' ? 'favorites' : 'pinned';
+	var NOUN_CAP = VOCAB === 'favorites' ? 'Favorites' : 'Pinned';
+
 	var isFav = {};
 	for (var i = 0; i < favs.length; i++) {
 		isFav[favs[i]] = true;
@@ -83,6 +93,11 @@
 	// paint. This is the only part the filtering depends on.
 	root.setAttribute('data-fc-view', view);
 	root.setAttribute('data-fc-favs', favs.join(','));
+	// The badge word, from the vocabulary setting. A CSS custom property, not
+	// an attribute: attributes do not inherit down the tree, so a rule on the
+	// row could not read one set on <html>, but a custom property inherits and
+	// favorite.css can consume it from any row.
+	root.style.setProperty('--fc-badge', '"' + NOUN_CAP + '"');
 
 	// ---- 2. per-id rules, injected once ------------------------------------
 	//
@@ -219,6 +234,12 @@
 		}, bad ? 4000 : 2200);
 	}
 
+	// NOTE: internals keep the original favorite-based names (favCategory,
+	// data-fc-fav, favorite.js, view states all/only/without) on purpose —
+	// data-fc-fav is a contract with the Hidden Categories sibling. The user
+	// -facing words and glyph come from the `look` setting below. Do not
+	// rename these identifiers as a "cleanup".
+
 	// ---- 5. the one button: all -> only -> without -> all ------------------
 	//
 	// One control, one place, three states. Drawn inline with currentColor so
@@ -228,7 +249,15 @@
 	//   hollow      -> all:      favorites filter nothing
 	//   filled      -> only:     just the favorites are shown
 	//   slashed     -> without:  favorites are filtered out
+	// Glyphs, chosen by the `icon` setting. Same viewBox, stroke weight and
+	// currentColor treatment so the two read at the same size in the shared
+	// sidebar row — a pin that renders smaller than the sibling eye looks
+	// broken rather than different.
 	var STAR = '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>';
+	// A pushpin: head, shaft, and a point. Filled it reads as "pinned" at
+	// sidebar size; the hollow variant is the unpinned state.
+	var PIN = '<path d="M9 3h6l-.6 4.2 3.1 3.1v2.2h-4.9V20l-.6 1.2L11.4 20v-7.5H6.5v-2.2l3.1-3.1z"/>';
+
 	var ICONS = {
 		all:
 			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
@@ -242,11 +271,28 @@
 			+ '<path d="M4 20L20 4" stroke-width="1.9" stroke-linecap="round"/></svg>'
 	};
 
+	var PIN_ICONS = {
+		all:
+			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
+			+ ' stroke-linejoin="round" aria-hidden="true">' + PIN + '</svg>',
+		only:
+			'<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.7"'
+			+ ' stroke-linejoin="round" aria-hidden="true">' + PIN + '</svg>',
+		without:
+			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
+			+ ' stroke-linejoin="round" aria-hidden="true">' + PIN
+			+ '<path d="M4 20L20 4" stroke-width="1.9" stroke-linecap="round"/></svg>'
+	};
+
+	// The glyph, from the same `look` setting.
+	var GLYPH = VOCAB === 'pinned' ? 'pin' : 'star';
+	var GLYPHS = GLYPH === 'star' ? ICONS : PIN_ICONS;
+
 	var LABELS = {
-		// label names what the NEXT click does; the icon shows the CURRENT state
-		all: { text: 'All', title: 'Everything is showing \u2014 favorites are not filtering anything' },
-		only: { text: 'Only favorites', title: 'Only your favorite categories are showing' },
-		without: { text: 'No favorites', title: 'Favorites are filtered out \u2014 everything else is showing' }
+		// label names the NEXT click does; the icon shows the CURRENT state
+		all: { text: 'Mixed', title: 'Everything is showing \u2014 ' + NOUN_PL + ' are not filtering anything' },
+		only: { text: 'Just ' + NOUN_CAP, title: 'Only your ' + NOUN + ' categories are showing' },
+		without: { text: 'Hide ' + NOUN_CAP, title: NOUN_CAP + ' are filtered out \u2014 everything else is showing' }
 	};
 
 	// ---- the button's own content ----------------------------------------
@@ -264,7 +310,7 @@
 
 	function buttonInner(state) {
 		var l = LABELS[state] || LABELS.all;
-		var icon = '<span class="fc-ico">' + (ICONS[state] || ICONS.all) + '</span>';
+		var icon = '<span class="fc-ico">' + (GLYPHS[state] || GLYPHS.all) + '</span>';
 		// the text is split on the first space so it can wrap onto two lines
 		// inside a narrow shared row: "Show" / "favorites". CSS handles the
 		// wrap; the split only marks where the break belongs.
@@ -339,7 +385,7 @@
 		//   number  the count on its own
 		//   both    rowLabel text, then the count
 		var rowMode = FC.rowMode === 'number' || FC.rowMode === 'both' ? FC.rowMode : 'caret';
-		var label = typeof FC.rowLabel === 'string' ? FC.rowLabel : 'Favorites';
+		var label = typeof FC.rowLabel === 'string' ? FC.rowLabel : NOUN_CAP;
 		var drawLabel = rowMode === 'both' && label !== '';
 		var drawNum = rowMode !== 'caret';
 
@@ -348,7 +394,7 @@
 		title.href = '#';
 		title.setAttribute('role', 'button');
 		title.setAttribute('aria-expanded', view === 'all' ? 'false' : 'true');
-		title.title = favs.length + ' favorite ' + (favs.length === 1 ? 'category' : 'categories');
+		title.title = favs.length + ' ' + NOUN + ' ' + (favs.length === 1 ? 'category' : 'categories');
 		title.innerHTML = '<button class="dropdown-toggle" type="button" title="Expand">'
 			+ '<span class="fc-caret">&#9662;</span></button>'
 			+ (!drawLabel && !drawNum ? ''
@@ -382,8 +428,8 @@
 			var btn = document.createElement('button');
 			btn.type = 'button';
 			btn.className = 'fc-unfav';
-			btn.title = 'Remove from favorites (the category itself is untouched)';
-			btn.setAttribute('aria-label', 'Unfavorite ' + (info.name || ('category ' + id)));
+			btn.title = 'Remove from ' + NOUN_PL + ' (the category itself is untouched)';
+			btn.setAttribute('aria-label', 'Un' + NOUN + ' ' + (info.name || ('category ' + id)));
 			btn.textContent = '\u00D7';
 			btn.addEventListener('click', function (ev) {
 				ev.preventDefault();
@@ -441,10 +487,15 @@
 			var btn = document.createElement('button');
 			btn.type = 'button';
 			btn.className = 'btn fc-sub-btn' + (fav ? ' fc-sub-on' : '');
-			btn.textContent = fav ? '\u2605' : '\u2606';
+			// Same glyph as the sidebar button: the filled shape when this
+			// category is already in the set, hollow when it is not.
+			var shape = GLYPH === 'star' ? STAR : PIN;
+			btn.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em"'
+				+ ' fill="' + (fav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.7"'
+				+ ' stroke-linejoin="round" aria-hidden="true">' + shape + '</svg>';
 			btn.title = fav
-				? 'Remove from favorites (the category itself is untouched)'
-				: 'Add to favorites';
+				? 'Remove from ' + NOUN_PL + ' (the category itself is untouched)'
+				: 'Add to ' + NOUN_PL;
 			btn.addEventListener('click', function (ev) {
 				ev.preventDefault();
 				ev.stopPropagation();
@@ -505,8 +556,8 @@
 				item.className = 'fc-ctx-item';
 				item.setAttribute('role', 'menuitem');
 				item.style.cssText = 'padding:6px 14px;cursor:pointer;display:flex;gap:8px;align-items:center';
-				item.innerHTML = '<span aria-hidden="true">' + (fav ? '\u2605' : '\u2606') + '</span>'
-					+ '<span>' + (fav ? 'Remove from favorites' : 'Add to favorites') + '</span>'
+				item.innerHTML = '<span aria-hidden="true">' + (GLYPH === 'star' ? (fav ? '\u2605' : '\u2606') : '') + '</span>'
+					+ '<span>' + (fav ? 'Remove from ' + NOUN_PL : 'Add to ' + NOUN_PL) + '</span>'
 					+ (info.feeds != null ? '<span style="opacity:.5;font-size:.85em;margin-left:auto">'
 						+ info.feeds + '</span>' : '');
 				item.addEventListener('mouseenter', function () {

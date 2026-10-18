@@ -98,6 +98,10 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			'rowMode' => $this->store()->rowMode(),
 			'rowLabel' => $this->store()->rowLabel(),
 			'button' => $this->store()->buttonContent(),
+			// One field for the UI: 'pinned' or 'favorites'. The store keeps
+			// vocab and icon separately, but they only ever move together.
+			'look' => $this->store()->vocabulary() === 'pinned' && $this->store()->icon() === 'pin'
+				? 'pinned' : 'favorites',
 			'mode' => $this->store()->mode(),
 			// _url() returns an HTML-escaped string ("&amp;"), which is correct
 			// in markup and WRONG in a JS string: fetch() would send a parameter
@@ -534,6 +538,22 @@ class FavoriteCategoriesExtension extends Minz_Extension
 					$rb = $this->store()->setButtonContent(trim($btn));
 					if (!$rb['ok']) {
 						Minz_Request::bad($rb['message'], $this->selfUrl());
+						return;
+					}
+				}
+				// One setting, two stored halves: the wording (vocab) and the
+				// glyph (icon) always move together.
+				$look = Minz_Request::paramStringNull('look', true);
+				if ($look !== null && trim($look) !== '') {
+					$look = trim($look);
+					if (!in_array($look, ['pinned', 'favorites'], true)) {
+						Minz_Request::bad('Refused: "' . $look . '" is not a symbol option.', $this->selfUrl());
+						return;
+					}
+					$rv = $this->store()->setVocabulary($look);
+					$ri = $this->store()->setIcon($look === 'pinned' ? 'pin' : 'star');
+					if (!$rv['ok'] || !$ri['ok']) {
+						Minz_Request::bad($rv['ok'] ? $ri['message'] : $rv['message'], $this->selfUrl());
 						return;
 					}
 				}

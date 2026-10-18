@@ -52,15 +52,28 @@ The star *is* the button, and its icon shows which view you're in. Clicking cycl
 
 | star | view | button reads | sidebar | stream |
 |---|---|---|---|---|
-| ☆ hollow | **everything** | **All** | none of your categories are filtered by this extension | nothing filtered |
-| ★ filled | **favorites only** | **Only favorites** | only favorited categories are listed | only articles from favorited categories |
-| ★̸ slashed | **favorites filtered out** | **No favorites** | favorited categories are removed | only articles from the rest |
+| ☆ hollow | **everything** | **Mixed** | none of your categories are filtered by this extension | nothing filtered |
+| ★ filled | **favorites only** | **Just favorites** | only favorited categories are listed | only articles from favorited categories |
+| ★̸ slashed | **favorites filtered out** | **Hide favorites** | favorited categories are removed | only articles from the rest |
 
 The filtered views **remove** the rows they filter out rather than dimming them, so the sidebar shows
 exactly what the stream is showing. One more click on the star brings everything back.
 
 Favorited categories carry a small **favorite** tag in every view, so you can tell at a glance which
 rows the filter is acting on — including in *everything*, where nothing is filtered at all.
+
+## Star or pin
+
+The settings page has one **Symbol and wording** dropdown. It changes only what you see; nothing
+about how the extension stores or filters changes either way.
+
+| Option | Button glyph | Button labels | Row tag |
+|---|---|---|---|
+| **Star** (default) | ☆ hollow / ★ filled / ★̸ slashed | Mixed · Just Favorites · Hide Favorites | FAVORITE |
+| **Pin** | pushpin, hollow / filled / slashed | Mixed · Just Pinned · Hide Pinned | PINNED |
+
+Internally the extension keeps its original `favorite` names — the state file, the CSS hooks and the
+`data-fc-fav` attribute the Hidden Categories sibling reads. That is deliberate and is not a bug.
 
 ## Pick a mode
 
@@ -202,6 +215,16 @@ encouraged.** The parts worth reading are `store.php` (the whole persistent stat
 `extension.php` (`injectJsVars()`, the page payload) and `static/favorite.js` (the filtering, and
 the comment at the top explaining the non-conflict contract).
 
+**1.3.0** — one display setting, and shorter button labels.
+
+- **Symbol and wording dropdown.** Pick *Star* (the 1.x look, the default) or *Pin*: the button then
+  draws a pushpin and says **Just Pinned / Hide Pinned**, and the row tag reads **PINNED**. Stored
+  data, filtering behaviour and internals are identical either way.
+- **Button labels shortened.** *All* is now **Mixed**, *Only favorites* is now **Just Favorites**, and
+  *No favorites* is now **Hide Favorites**.
+- The Subscription page's per-category button and the right-click menu item now follow the same
+  setting instead of always drawing a star.
+
 ## Changelog
 
 **1.2.5** — the button label names the state you are in, and matches the eye button's size.
@@ -214,9 +237,9 @@ The label now names what is on screen **right now**:
 
 | You are looking at | Button reads |
 |---|---|
-| everything, no filter | **All** |
-| just your favorites | **Only favorites** |
-| favorites removed | **No favorites** |
+| everything, no filter | **Mixed** |
+| just your favorites | **Just favorites** |
+| favorites removed | **Hide favorites** |
 
 The tooltip says the same thing in a sentence, and the label is now the same text size as the
 category-hiding extension's eye button — it was 0.92em against the eye's 0.88em, so the two

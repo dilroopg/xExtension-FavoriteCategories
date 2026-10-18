@@ -30,12 +30,16 @@ $url = _url('extension', 'configure', 'e', urlencode($this->getName()));
 $view = $store->view();
 $nextView = $store->nextView();
 // Labels and titles name the CURRENT state, matching the sidebar star.
+// The noun follows the `look` setting the same way favorite.js builds it.
+$fcNoun = $store->vocabulary() === 'pinned' ? 'pinned' : 'favorite';
+$fcNounCap = $store->vocabulary() === 'pinned' ? 'Pinned' : 'Favorites';
+$fcNounPl = $store->vocabulary() === 'pinned' ? 'pinned' : 'favorites';
 $viewLabels = [
-	'all' => ['All', 'Everything is showing — favorites are not filtering anything'],
-	'only' => ['Only favorites', 'Only your favorite categories are showing'],
-	'without' => ['No favorites', 'Favorites are filtered out — everything else is showing'],
+	'all' => ['Mixed', 'Everything is showing — ' . $fcNounPl . ' are not filtering anything'],
+	'only' => ['Just ' . $fcNounCap, 'Only your ' . $fcNoun . ' categories are showing'],
+	'without' => ['Hide ' . $fcNounCap, $fcNounCap . ' are filtered out — everything else is showing'],
 ];
-$viewLabel = ['all' => 'everything', 'only' => 'favorites only', 'without' => 'favorites filtered out'][$view] ?? 'everything';
+$viewLabel = ['all' => 'everything', 'only' => $fcNounPl . ' only', 'without' => $fcNounPl . ' hidden'][$view] ?? 'everything';
 $nextViewLabel = $viewLabels[$view][0] ?? 'All';
 $nextViewTitle = $viewLabels[$view][1] ?? '';
 
@@ -264,6 +268,19 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 					</label>
 				<?php } ?>
 			</div>
+
+			<?php
+			// One choice, two options: they travel together. A pin with the
+			// word "favorites" is not a combination worth offering.
+			$pinMode = $store->vocabulary() === 'pinned' && $store->icon() === 'pin';
+			?>
+			<label class="fc-label-field">
+				<span>Symbol and wording</span>
+				<select name="look" class="fc-label-input" data-fc-look>
+					<option value="favorites" <?= $pinMode ? '' : 'selected' ?>>Star &mdash; Just Favorites / Hide Favorites</option>
+					<option value="pinned" <?= $pinMode ? 'selected' : '' ?>>Pin &mdash; Just Pinned / Hide Pinned</option>
+				</select>
+			</label>
 
 			<label class="fc-label-field">
 				<span>Label text (used by "Label and number")</span>

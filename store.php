@@ -814,6 +814,62 @@ final class FavoriteCategoriesStore
 
 	public const BUTTON_CONTENTS = ['both', 'icon', 'text'];
 
+	// ------------------------------------------------------ vocabulary + icon
+	//
+	// Two more display choices, independent of button content:
+	//
+	//   vocabulary  pinned    the button and row say "pinned" / "Pinned"
+	//               favorites the original wording
+	//   icon        pin       a pushpin glyph
+	//               star      the original star glyph
+	//
+	// Both are display-only. Neither changes what is stored, which feeds are
+	// touched, or any identifier: the extension is still literally named
+	// FavoriteCategories internally (favCategory(), data-fc-fav, the
+	// `favorite` badge). That is deliberate — see the note at the top of
+	// favorite.js before "fixing" the names.
+
+	public const VOCABULARIES = ['pinned', 'favorites'];
+	public const ICONS = ['pin', 'star'];
+
+	public function vocabulary(): string
+	{
+		$v = $this->getMeta('vocab', 'favorites');
+		return in_array($v, self::VOCABULARIES, true) ? $v : 'favorites';
+	}
+
+	/** @return array{ok:bool,message:string} */
+	public function setVocabulary(string $what): array
+	{
+		if (!in_array($what, self::VOCABULARIES, true)) {
+			return ['ok' => false, 'message' => 'Refused: "' . $what . '" is not a wording option.'];
+		}
+		if (!$this->setMeta('vocab', $what)) {
+			return ['ok' => false, 'message' => 'Could not save the wording option.'];
+		}
+		return ['ok' => true, 'message' => $what === 'pinned'
+			? 'Saved: the button and sidebar row say "pinned".'
+			: 'Saved: the button and sidebar row say "favorites".'];
+	}
+
+	public function icon(): string
+	{
+		$i = $this->getMeta('icon', 'star');
+		return in_array($i, self::ICONS, true) ? $i : 'star';
+	}
+
+	/** @return array{ok:bool,message:string} */
+	public function setIcon(string $what): array
+	{
+		if (!in_array($what, self::ICONS, true)) {
+			return ['ok' => false, 'message' => 'Refused: "' . $what . '" is not an icon option.'];
+		}
+		if (!$this->setMeta('icon', $what)) {
+			return ['ok' => false, 'message' => 'Could not save the icon option.'];
+		}
+		return ['ok' => true, 'message' => 'Saved: the button shows a ' . $what . '.'];
+	}
+
 	public function buttonContent(): string
 	{
 		$b = $this->getMeta('button', 'both');
