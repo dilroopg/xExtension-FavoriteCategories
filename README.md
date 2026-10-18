@@ -1,16 +1,14 @@
 # Favorite Categories
 
-**No creeping on your hidden feeds.** Hide categories from FreshRSS so they aren't on screen —
-no sidebar entry, no articles in your main stream — and bring them back in one click.
+**Filter your sidebar down to the categories you actually read.** Mark a few categories as
+favorites, then flip one star button to see only those — or everything except those.
 
-This is aimed at screen lurkers: someone at the next desk, a person walking past, a friend
-picking up your phone. The category stays in your FreshRSS and keeps updating; it just isn't
-visible. In Strict mode it also disappears from your phone and every synced reader app.
+FreshRSS can group multiple categories into a folder, but that doesn't help when the categories you
+care about are scattered across several folders: the main stream is still everything, and the
+sidebar is still all of it. This adds a favorites filter that works across folders.
 
-FreshRSS has no "hide a category" switch — the usual workarounds are to unsubscribe (and lose the
-feeds) or collapse the folder (which still floods the main stream). This adds the missing switch.
-
-Nothing is deleted, renamed or moved, and no subscription is ever touched.
+Nothing is deleted, renamed or moved, and no subscription is ever touched. **Nothing is written to
+a feed at all** — favoriting is a filter in your browser, not a change to your subscriptions.
 
 ## Install
 
@@ -24,226 +22,117 @@ git clone https://github.com/dilroopg/xExtension-FavoriteCategories.git
 **Option 2 — the release zip** (no git needed): download
 `xExtension-FavoriteCategories.zip` from the
 [latest release](https://github.com/dilroopg/xExtension-FavoriteCategories/releases/latest) and
-unpack it in `FreshRSS/extensions/`. Unpacking a newer zip over the top updates it and leaves
-your settings alone.
+unpack it in `FreshRSS/extensions/`. Unpacking a newer zip over the top updates it and leaves your
+settings alone.
 
 Then open **Settings → Extensions → Favorite Categories → enable**.
 
 **Requirements:** FreshRSS 1.28.0 or newer. Nothing else — no build step, no config file, no other
-extension. Tested on FreshRSS 1.30.1 / PHP 8.4, on a live ~1000-feed install and on a blank one.
+extension. Tested on FreshRSS 1.30.1 / PHP 8.4.
 
 ## Quick start
 
-1. Click **Hide** next to a category — in the extension's settings, on the category box under
-   **Subscription management**, or by right-clicking it in the sidebar (that one needs the
-   optional [RightClickActions](#optional-right-click-menu) extension).
-2. A button with a green eye appears above the sidebar. Click it to cycle through three views.
-3. To get everything back: unhide the category, or press **Restore everything now**.
+1. Press **Favorite** next to a category in the extension's settings, or the **☆** on a category
+   box under **Subscription management**.
+2. A star button appears above the sidebar. Click it to cycle through the three views.
+3. To stop filtering, click until the star is hollow again.
 
-## Pick a mode
+## The star
 
-One question decides it: **should your phone and reader apps see the hidden categories too?**
+The star *is* the button, and its icon shows which view you're in. Clicking cycles:
 
-| | **Light** (default) | **Strict** |
-|---|---|---|
-| main stream in your browser | filtered | filtered |
-| phone, reader app, API | still show everything | **hidden** |
-| the category's own page | still shows its feeds | **empty until you unhide it** |
-| what it writes | nothing at all | FreshRSS's per-feed Visibility, old value saved and restored later |
-| speed when hiding | instant | a burst at the click (see [costs](#what-it-costs)) |
-
-Set it under **Mode** in the extension settings. Switching back to Light undoes everything Strict
-did.
-
-Hiding never stops fetching. Entries keep arriving and still count as unread; unhiding brings the
-whole backlog back.
-
-## The green eye
-
-The eye *is* the button, and its icon shows which view you're in. Clicking cycles:
-
-| ![closed eye](docs/eye-hidden.svg) | ![peeking eye](docs/eye-revealed.svg) | ![open eye](docs/eye-only.svg) |
-|---|---|---|
-| **hidden** — what you hid is gone | **revealed** — everything, hidden ones marked | **only** — just the hidden ones |
-
-| view | sidebar | stream | feeds |
+| star | view | sidebar | stream |
 |---|---|---|---|
-| **hidden** | hidden categories are gone | their articles are gone | hiding applied |
-| **revealed** | everything, hidden rows tagged `HIDDEN` | hidden articles mixed in with the rest | hiding temporarily lifted |
-| **only** | everything listed, non-hidden rows fade back, hidden rows tagged `HIDDEN` | **only** the hidden categories' articles | hiding temporarily lifted |
+| ☆ hollow | **everything** | none of your categories are filtered by this extension | nothing filtered |
+| ★ filled | **favorites only** | non-favorites fade back | only articles from favorited categories |
+| ★̸ slashed | **favorites filtered out** | favorites fade back | only articles from the rest |
 
-**"Only" removes the rest, it doesn't just narrow the list** — every article from a category you
-haven't hidden disappears from the stream. In the sidebar those rows are only dimmed, so you can
-still click through to them.
+The filtered views dim the other rows rather than removing them, so a stray click can never leave
+you with an apparently empty sidebar — and one more click gets you back.
 
-The `HIDDEN` tag only appears in the **revealed** and **only** views — it is never shown in the
-normal `hidden` view, because in that view the categories aren't on screen at all. In those two
-views it sits after the category's name, so you can tell at a glance which of the visible ones
-are the ones you'd hidden:
+The filled views also tint favorited category names, so you can tell at a glance which rows the
+filter is acting on.
 
-![hidden category tag](docs/hidden-tag.svg)
+## What "favorite" does and doesn't do
 
-Clicking again from `only` returns you to `hidden`, which re-applies the hiding.
+**Does:** filter the sidebar and the main stream in this browser.
 
-The row at the bottom of the sidebar labels itself with one of three display states, picked under
+**Doesn't:**
+
+- **Change your subscriptions.** A category is favorited or not; its feeds, name, and folder stay
+  exactly as they were.
+- **Hide anything from other clients.** This is a browser-side filter. Your phone and any synced
+  reader app still see every category and feed. (If you want feeds gone from the phone too, that's
+  a different job — see *Works with other extensions* below.)
+- **Touch read state.** Nothing is marked read, nothing is deleted.
+
+## Works with other extensions
+
+This extension is deliberately built to coexist. Two things make that true:
+
+- **It never writes `display` on a category row.** It dims with `opacity`, so another extension
+  hiding a row still works — it just stays hidden.
+- **Every filter rule excludes rows another extension has hidden.** A category that is both
+  favorited and hidden stays hidden in every favorites view.
+
+**Neither extension needs the other installed.** Alone, this is a complete favorites filter. With a
+hiding extension also installed, the two buttons share one row above the sidebar: one control takes
+the full width on its own, two split it evenly with a gap between them. Each side sizes itself from
+its own row, so neither has to detect the other.
+
+## Three ways to label the sidebar row
+
+The favorites row at the bottom of the sidebar labels itself one of three ways, set under
 **Sidebar** in the settings:
 
 | state | the row shows |
 |---|---|
-| **Nothing but the caret** | no text at all — the row is just its disclosure arrow |
-| **The number only** | `7` |
-| **Label and number** | `Hidden 7` (any text; default label is `Hidden`) |
+| **Nothing but the caret** | no text at all — just the disclosure arrow |
+| **The number only** | `3` |
+| **Label and number** | `Favorites 3` (any text; default label is `Favorites`) |
 
-The label under **Label text** is used by the third state and is kept when you switch away from it,
-so moving between states never loses what you typed. An empty label in the third state falls back
-to the number alone.
-
-All three save with **one Save button** and give the same feedback: **After saving** updates as you
-pick a state or type, and an "Unsaved changes" line stays until you commit. Nothing here changes
-what is hidden, what Strict enforces, or the eye button — the row itself always stays, because it's
-how you open the list. With the first state, someone glancing at the screen learns nothing from it.
-
-## What "private" covers — and what it doesn't
-
-Worth reading once, so you know what you're relying on.
-
-**It does:** keep the category and its articles off your screen — out of the sidebar and main
-stream, and in Strict out of the API that your phone and reader apps talk to.
-
-**It doesn't:**
-
-- **Encrypt anything.** The feeds, category names and articles are all still in your database,
-  readable by anyone with access to the server or the database file.
-- **Stop someone logged into FreshRSS.** *Subscription management* is a standard FreshRSS page that
-  lists every feed and category, and it's unaffected. So is the category's own page once unhidden.
-- **Protect you in Light mode on other devices.** Light filters this browser only; a phone or
-  another browser still shows everything.
-- **Provide real password security.** The optional passcode below is a speed bump, not a lock.
-
-If you need the content itself kept from someone with server access, this isn't the tool for it —
-that needs encryption at rest, which no FreshRSS extension provides.
-
-## Optional passcode
-
-For one situation: you've hidden something, someone walks up to your unlocked computer, and you
-don't want them clicking the eye. Set a passcode in the settings and a red lock button appears
-beside the eye:
-
-![red lock button](docs/lock-button.svg)
-
-It is **deliberately weak**, and that's a choice, not an oversight — stored in **plain text** and
-shown in plain text in the settings, with **no attempt limit or lockout**. Anyone who can read the
-database file can read it, and guessing isn't slowed down. It guards only this extension's own
-controls: it doesn't touch FreshRSS login and doesn't hide anything from *Subscription management*.
-
-Convenient, though: you can always see it, change it, or remove it **without knowing the current
-one**, so you can't lock yourself out. Unlock lasts for your browser session; locking again is one
-click. Locking hides the eye and the count row but changes nothing about your feeds — the hiding
-stays applied throughout.
-
-If you want actual security, use FreshRSS's own authentication. This is a curtain, not a door.
-
-## What it costs
-
-Measured on an install with about 1000 feeds. All cost is at the moment you click — page loads
-stay at normal speed, and nothing runs in the background (no cron, no external service, no network
-calls).
-
-- **Hiding or unhiding in Strict** writes FreshRSS's Visibility setting for every feed in the
-  category: **188 feeds ≈ 1.4 s**, **864 feeds ≈ 3 s**.
-- **The peeking and only views are the expensive ones.** In Strict a hidden feed is marked *Do not
-  show*, so the server doesn't send its articles at all — showing them means lifting that for every
-  feed first: **≈ 2.6–3 s each way** for 864 feeds. In Light these views are instant.
-- **While in those two views, your feeds really are visible to every synced client**, phone
-  included. That's the only way to show them. Closing the eye hides them again.
-- **Hidden feeds keep downloading.** Hiding changes what's displayed, never what's fetched, so
-  unread counts can climb for categories you can't see.
-
-## Getting everything back
-
-- **One category** — `Show` in the settings list, the button under Subscription management, or
-  right-click → *Show category*.
-- **Everything at once** — **Restore everything now** in the settings. Unhides every category and
-  returns every feed to its recorded value.
-- **Disable the extension** — it restores first, then disables. If the restore can't complete the
-  disable is **refused** and the extension stays enabled with its settings reachable, so you can't
-  end up with hidden feeds and no way back.
-
-Your settings, hidden set, mode and passcode are kept when you disable, and come back when you
-re-enable — where Strict re-applies the hiding automatically, so it never claims to hide things
-that are actually visible.
+The label under **Label text** is kept when you switch to another state, so moving to caret-only
+and back never loses it. All three save with **one Save button**, with a live **After saving**
+preview and an "Unsaved changes" line until you commit.
 
 ## What it writes
 
-**Light:** nothing. Everything it stores lives in its own SQLite file —
-`data/users/<your user>/extensions/FavoriteCategories/state.sqlite` (your FreshRSS data folder).
+Nothing in your feeds. Its state lives in its own SQLite file —
+`data/users/<your user>/extensions/FavoriteCategories/state.sqlite` — holding which categories are
+favorites, the current view, and the two display options. Deleting the extension folder leaves that
+file alone; delete the file itself to forget everything.
 
-**Strict:** one column on the feeds of hidden categories — `priority`, FreshRSS's own per-feed
-Visibility. The previous value is recorded before every write and put back afterwards. Nothing
-else about a feed is touched: no name, URL, category, favicon, or another extension's settings.
-Nothing is written to FreshRSS's own database or config.
-
-That database holds three tables: `meta` (view, mode, passcode, lock state, the two sidebar display
-switches), `fav_cat` (which categories are hidden) and `feed_snap` (the Visibility values
-recorded so they can be restored). Deleting the extension folder leaves the file alone; delete the
-file itself to forget everything.
-
-## Changelog
-
-**1.4.3** — the sidebar row's three display states, including label-only.
-
-- The on/off "show the count" checkbox is replaced by a three-option choice: **nothing but the
-  caret**, **the number only**, or **label and number**. The checkbox could not express "label but
-  no number", which is the state that actually obscures the row.
-- The label under **Label text** is kept when you switch to another state, so moving to caret-only
-  and back does not lose it. An empty label in the third state falls back to the number alone.
-- The display state is stored explicitly (`rowmode`) instead of being inferred from two flags.
-  Existing settings are migrated automatically on read; nothing is lost.
-- 1.4.2 and 1.4.1 are folded in: the label is free text (it was an on/off prefix switch), and both
-  settings save with one **Save** button, a live **After saving** preview, and an
-  "Unsaved changes" line.
-
-**1.3.5** — the `HIDDEN` tag gained a note on when it appears; the tag illustration was redrawn.
-
-Earlier versions are on the [releases page](https://github.com/dilroopg/xExtension-FavoriteCategories/releases).
+Disabling the extension has nothing to undo, because nothing was ever written to a feed. Your
+favorites and display options are kept and come back when you re-enable it.
 
 ## Troubleshooting
 
-**Hiding does nothing on my phone.** You're in Light mode — switch to Strict.
+**The star isn't there.** It appears once at least one category is a favorite.
 
-**A hidden category is empty when I click it.** Expected in Strict: its feeds are set to *Do not
-show*, which empties the category page too. Unhide it to read it, or use the peeking view.
+**Clicking the star dims rows but my stream doesn't change.** The stream filter matches articles by
+their category id. A theme that strips `data-category` from article rows will dim the sidebar but
+leave the stream alone.
 
 **Settings won't save / the page says the store isn't writable.** The web server can't write
 `data/users/<your user>/extensions/FavoriteCategories/`. This normally only happens if FreshRSS has
 been run as root from a command line, leaving root-owned files behind. Fix ownership with
 `chown -R www-data:www-data data/users/<your user>/extensions` (use your own web-server user).
 
-**The eye button isn't there.** It appears once something is hidden — or once you've set a
-passcode, so you can lock before hiding anything. While locked, the passcode field replaces it.
-
 **It won't load at all.** You're on FreshRSS below 1.28.0, which doesn't have a feature it needs.
-
-## Optional: right-click menu
-
-With [RightClickActions](https://github.com/printfuck/xExtension-RightClickActions) installed,
-this adds *Hide category* / *Show category* to the sidebar's right-click menu. Without it there's
-no right-click menu anywhere in FreshRSS, so nothing is missing — every other way of hiding still
-works. This extension never modifies that one; it only adds a menu item when the menu exists.
 
 ## How this was built
 
-Written with AI assistance, then tested against a real FreshRSS 1.30.1 install with about 1000
-feeds — enable/disable round trips, Strict writes and restores, the three views, and the lock all
-checked against the database rather than assumed — and again on a **blank** FreshRSS 1.30.1, where
-it installed from this release zip, enabled, hid a category, cycled the views and restored cleanly.
+Written with AI assistance, as a sibling of
+[Hidden Categories](https://github.com/dilroopg/xExtension-HiddenCategories) and sharing its
+architecture — the same store pattern, the same page-payload hook, the same single-button view
+cycle — but with no dependency on it in either direction. Tested against a real FreshRSS 1.30.1
+install: favoriting and unfavoriting, the three views, the display options, disable/enable round
+trips, and running both extensions at once.
 
 That's disclosed so you know what you're installing. **Forking and reading the code is
-encouraged.** It's about 2,900 lines across six files and none of it is clever — the parts worth
-reading are `extension.php` (`sweepFeeds()`, which does every write and the restore),
-`store.php` (the SQLite store, the only thing that persists anything) and `static/favorite.js` (the
-views). The goal was a working extension with as little code as possible: no framework, no build
-step, no dependencies, no background jobs. A PR that prunes it is welcome.
+encouraged.** The parts worth reading are `store.php` (the whole persistent state),
+`extension.php` (`injectJsVars()`, the page payload) and `static/favorite.js` (the filtering, and
+the comment at the top explaining the non-conflict contract).
 
 ## Licence
 
