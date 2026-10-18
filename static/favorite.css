@@ -415,6 +415,21 @@ html[data-fc-view="without"] li.tree-folder.category:not([data-fc-hidden="1"])[d
 	gap: 0.2em;
 	min-width: 17em;
 }
+/* Stacked rows: the display form has several of these (symbol, filter style,
+   label text). Left inline they sit at different heights and wrap raggedly
+   under the radio group, which reads as a layout bug rather than a setting.
+   One per row, full width, so the column lines up with the Save bar. */
+#favorite-categories-display-form > .fc-label-field {
+	display: flex;
+	width: 100%;
+	max-width: 34em;
+	min-width: 0;
+	margin-top: 0.45em;
+}
+#favorite-categories-display-form > .fc-label-field .fc-label-input {
+	width: 100%;
+	min-width: 0;
+}
 .fc-label-field > span {
 	font-size: 0.86em;
 	opacity: 0.8;

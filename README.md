@@ -231,6 +231,11 @@ encouraged.** The parts worth reading are `store.php` (the whole persistent stat
 `extension.php` (`injectJsVars()`, the page payload) and `static/favorite.js` (the filtering, and
 the comment at the top explaining the non-conflict contract).
 
+**1.3.2** — fix the settings-page layout for the new dropdowns.
+
+- The display form's fields stacked one per row instead of sitting inline at uneven heights under
+  the radio group. `inline-flex` was right for a single select beside the Save bar, wrong for three.
+
 ## Changelog
 
 **1.3.1** — a dim-instead-of-hide option for the filtered views.
