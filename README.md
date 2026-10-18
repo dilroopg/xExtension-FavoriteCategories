@@ -53,17 +53,40 @@ you with an apparently empty sidebar — and one more click gets you back.
 The filled views also tint favorited category names, so you can tell at a glance which rows the
 filter is acting on.
 
+## Pick a mode
+
+One question decides it: **should your phone and reader apps see the filter too?**
+
+| | **Light** (default) | **Strict** |
+|---|---|---|
+| sidebar and stream in your browser | filtered | filtered |
+| phone, reader app, API | still show everything | **filtered** |
+| what it writes | nothing at all | FreshRSS's per-feed visibility, old value saved and restored |
+| speed when switching | instant | a sweep (see below) |
+
+In Strict, favorites are promoted to *Show in important feeds* and everything else is pushed down.
+**Where they go** is a second setting, shown only in Strict:
+
+- **Out of the main stream** (−5) — off the main stream everywhere, still readable in its own
+  category and in reader apps.
+- **Gone entirely** (−10) — not returned to any client at all, exactly like Hidden Categories'
+  Strict mode. While this is in force, a non-favorite category's own page is empty too. That is the
+  cost of it also being gone from your phone.
+
+Switching back to Light restores every feed. So does unfavoriting, changing the demote setting, or
+disabling the extension.
+
 ## What "favorite" does and doesn't do
 
-**Does:** filter the sidebar and the main stream in this browser.
+**Does:** filter the sidebar and the main stream — in this browser in Light, on every client in
+Strict.
 
 **Doesn't:**
 
 - **Change your subscriptions.** A category is favorited or not; its feeds, name, and folder stay
   exactly as they were.
-- **Hide anything from other clients.** This is a browser-side filter. Your phone and any synced
-  reader app still see every category and feed. (If you want feeds gone from the phone too, that's
-  a different job — see *Works with other extensions* below.)
+- **Ever touch a feed in a hidden category.** If a category is hidden by a hiding extension, this
+  one leaves its feeds alone entirely — so a favorited category that is also hidden stays hidden.
 - **Touch read state.** Nothing is marked read, nothing is deleted.
 
 ## Works with other extensions
@@ -79,6 +102,10 @@ This extension is deliberately built to coexist. Two things make that true:
 hiding extension also installed, the two buttons share one row above the sidebar: one control takes
 the full width on its own, two split it evenly with a gap between them. Each side sizes itself from
 its own row, so neither has to detect the other.
+
+**On the feeds themselves (Strict):** this extension never writes to a feed inside a hidden
+category. Hiding owns those rows; favorites only reorders the rest. So the two can never write the
+same feed, and no favorites click can bring back something you hid.
 
 ## Three ways to label the sidebar row
 
@@ -97,7 +124,10 @@ preview and an "Unsaved changes" line until you commit.
 
 ## What it writes
 
-Nothing in your feeds. Its state lives in its own SQLite file —
+**Light:** nothing. **Strict:** one column on every feed — visibility — with the previous value
+recorded first and put back afterwards. Nothing else about a feed is touched.
+
+Its state lives in its own SQLite file —
 `data/users/<your user>/extensions/FavoriteCategories/state.sqlite` — holding which categories are
 favorites, the current view, and the two display options. Deleting the extension folder leaves that
 file alone; delete the file itself to forget everything.
