@@ -20,6 +20,13 @@ feed in Light mode** — favoriting is a filter in your browser, not a change to
 The one thing it does write is a favorited category's display position, so favorites sort to the
 top; that value is recorded first and restored when you unfavorite.
 
+## What it looks like
+
+The controls live in the sidebar they affect: the filter button sits above the tree, and favorited
+categories carry a **favorite** tag on their row.
+
+![The Feed Indent control in the sidebar](https://raw.githubusercontent.com/dilroopg/freshrss-extensions/master/screenshots/sidebar-indent.png)
+
 ## Install
 
 **Option 1 — git clone** (updates with `git pull`):
