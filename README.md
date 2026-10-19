@@ -1,8 +1,8 @@
 # Favorite Categories
 
-Part of [dilroopg's FreshRSS extensions](https://github.com/dilroopg/freshrss-extensions) — see the hub for everything else.
+Part of [hardlysleeping's FreshRSS extensions](https://github.com/hardlysleeping/freshrss-extensions) — see the hub for everything else.
 
-> **Companion: [Hidden Categories](https://github.com/dilroopg/xExtension-HiddenCategories)** — the
+> **Companion: [Hidden Categories](https://github.com/hardlysleeping/xExtension-HiddenCategories)** — the
 > opposite job: put categories *away* rather than filtering down to a few. The two work together
 > fine and neither needs the other — Favorite removes rows it filters out but never selects a row
 > another extension has hidden, and in Strict it never writes to a feed inside a hidden category.
@@ -25,7 +25,7 @@ top; that value is recorded first and restored when you unfavorite.
 The controls live in the sidebar they affect: the filter button sits above the tree, and favorited
 categories carry a **favorite** tag on their row.
 
-![The Feed Indent control in the sidebar](https://raw.githubusercontent.com/dilroopg/freshrss-extensions/master/screenshots/sidebar-indent.png)
+![The Feed Indent control in the sidebar](https://raw.githubusercontent.com/hardlysleeping/freshrss-extensions/master/screenshots/sidebar-indent.png)
 
 ## Install
 
@@ -33,12 +33,12 @@ categories carry a **favorite** tag on their row.
 
 ```sh
 cd /path/to/FreshRSS/extensions
-git clone https://github.com/dilroopg/xExtension-FavoriteCategories.git
+git clone https://github.com/hardlysleeping/xExtension-FavoriteCategories.git
 ```
 
 **Option 2 — the release zip** (no git needed): download
 `xExtension-FavoriteCategories.zip` from the
-[latest release](https://github.com/dilroopg/xExtension-FavoriteCategories/releases/latest) and
+[latest release](https://github.com/hardlysleeping/xExtension-FavoriteCategories/releases/latest) and
 unpack it in `FreshRSS/extensions/`. Unpacking a newer zip over the top updates it and leaves your
 settings alone.
 
@@ -227,7 +227,7 @@ check.
 ## How this was built
 
 Written with AI assistance, as a sibling of
-[Hidden Categories](https://github.com/dilroopg/xExtension-HiddenCategories) and sharing its
+[Hidden Categories](https://github.com/hardlysleeping/xExtension-HiddenCategories) and sharing its
 architecture — the same store pattern, the same page-payload hook, the same single-button view
 cycle — but with no dependency on it in either direction. Tested against a real FreshRSS 1.30.1
 install: favoriting and unfavoriting, the three views, the display options, disable/enable round
