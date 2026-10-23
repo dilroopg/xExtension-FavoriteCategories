@@ -429,6 +429,109 @@ class FavoriteCategoriesExtension extends Minz_Extension
 
 	/** POST handling only. Everything that must happen on ANY settings-page
 	 *  render lives in handleConfigureAction() above. */
+	/**
+	 * Favorite or unfavorite one category.
+	 *
+	 * Single behaviour path for the settings form and the HardlyRead adapter:
+	 * the form's `fav`/`unfav` cases and the adapter's PUT route both land here,
+	 * so there is one implementation of what "favorite" means.
+	 *
+	 * The name comes from the database, never from the request: a posted name
+	 * could label one category while favoriting another.
+	 *
+	 * Strict mode converges the feeds immediately. A failed sweep is reported
+	 * with the state already saved, so a caller can tell "nothing happened"
+	 * apart from "saved, but the feeds did not follow".
+	 *
+	 * @return array{ok:bool,changed:bool,converged:bool,catId:int,favorite:bool,message:string}
+	 */
+	public function setCategoryFavorite(int $catId, bool $favorite): array
+	{
+		$fail = static fn (string $message, bool $state): array => [
+			'ok' => false,
+			'changed' => false,
+			'converged' => false,
+			'catId' => $catId,
+			'favorite' => $state,
+			'message' => $message,
+		];
+		if ($catId <= 0) {
+			return $fail('No category was named, so nothing changed.', $favorite);
+		}
+		$name = $this->categoryName($catId);
+		if ($name === null) {
+			return $fail('Category ' . $catId . ' no longer exists — nothing changed.', $favorite);
+		}
+		$wasFavorite = in_array($catId, $this->store()->favIds(), true);
+		$result = $favorite
+			? $this->store()->favCategory($catId, $name)
+			: $this->store()->unfavCategory($catId, $name);
+		if (!$result['ok']) {
+			return $fail($result['message'], $wasFavorite);
+		}
+		$sweep = $this->sweepFeeds();
+		return [
+			'ok' => true,
+			'changed' => $wasFavorite !== $favorite,
+			'converged' => (bool) $sweep['ok'],
+			'catId' => $catId,
+			'favorite' => $favorite,
+			'message' => $result['message'] . ($sweep['ok'] ? '' : ' But ' . $sweep['message'] . '.'),
+		];
+	}
+
+	/**
+	 * Move the favorites view, `all` -> `only` -> `without` -> `all`.
+	 *
+	 * Shared by the settings form and the HardlyRead adapter. An unknown view is
+	 * refused rather than guessed, and the sweep failure is reported with the new
+	 * view already saved.
+	 *
+	 * @return array{ok:bool,changed:bool,converged:bool,view:string,message:string}
+	 */
+	public function changeView(string $view): array
+	{
+		$view = trim($view);
+		if (!in_array($view, FavoriteCategoriesStore::VIEWS, true)) {
+			return [
+				'ok' => false,
+				'changed' => false,
+				'converged' => false,
+				'view' => $this->store()->view(),
+				'message' => 'Unknown view "' . $view . '": nothing was changed.',
+			];
+		}
+		$before = $this->store()->view();
+		if (!$this->store()->setView($view)) {
+			return [
+				'ok' => false,
+				'changed' => false,
+				'converged' => false,
+				'view' => $before,
+				'message' => 'Could not save the view: nothing was changed.',
+			];
+		}
+		$sweep = $this->sweepFeeds();
+		if (!$sweep['ok']) {
+			return [
+				'ok' => false,
+				'changed' => $before !== $view,
+				'converged' => false,
+				'view' => $view,
+				'message' => 'View saved, but ' . $sweep['message'] . '.',
+			];
+		}
+		return [
+			'ok' => true,
+			'changed' => $before !== $view,
+			'converged' => true,
+			'view' => $view,
+			'message' => $view === 'only' ? 'Showing only your favorites.'
+				: ($view === 'without' ? 'Favorites are filtered out.'
+					: 'Favorites no longer filter anything — showing everything.'),
+		];
+	}
+
 	private function handleConfigurePost(): void
 	{
 		if (!Minz_Request::isPost()) {
@@ -448,32 +551,17 @@ class FavoriteCategoriesExtension extends Minz_Extension
 		switch ($act) {
 			case 'fav':
 			case 'unfav':
-				$catId = Minz_Request::paramInt('cat');
-				if ($catId <= 0) {
-					Minz_Request::bad('No category was named, so nothing changed.', $this->selfUrl());
-					return;
-				}
-				// Name comes from the database, never from the request: a posted
-				// name could label one category while favoriting another.
-				$name = $this->categoryName($catId);
-				if ($name === null) {
-					Minz_Request::bad('Category ' . $catId . ' no longer exists — nothing changed.', $this->selfUrl());
-					return;
-				}
-				$result = $act === 'fav'
-					? $this->store()->favCategory($catId, $name)
-					: $this->store()->unfavCategory($catId, $name);
+				// One behaviour path, shared with the HardlyRead adapter.
+				$result = $this->setCategoryFavorite(
+					Minz_Request::paramInt('cat'),
+					$act === 'fav'
+				);
 				if (!$result['ok']) {
 					Minz_Request::bad($result['message'], $this->selfUrl());
 					return;
 				}
-				// Strict: favoriting changes what the feeds should look like, so
-				// converge now rather than on the next page load.
-				$sweep = $this->sweepFeeds();
-				$extra = $sweep['ok'] ? '' : ' But ' . $sweep['message'] . '.';
-				Minz_Request::good($result['message'] . $extra, $this->selfUrl());
+				Minz_Request::good($result['message'], $this->selfUrl());
 				return;
-
 			case 'view':
 				// One button, three states. Accepts an explicit target so the
 				// button can send the state it displays; refuses anything else
@@ -482,32 +570,13 @@ class FavoriteCategoriesExtension extends Minz_Extension
 				if ($to === null || trim($to) === '') {
 					$to = $this->store()->nextView();
 				}
-				$to = trim($to);
-				if (!in_array($to, FavoriteCategoriesStore::VIEWS, true)) {
-					Minz_Request::bad('Unknown view "' . $to . '": nothing was changed.', $this->selfUrl());
+				$result = $this->changeView($to);
+				if (!$result['ok']) {
+					Minz_Request::bad($result['message'], $this->selfUrl());
 					return;
 				}
-				if (!$this->store()->setView($to)) {
-					Minz_Request::bad('Could not save the view: nothing was changed.', $this->selfUrl());
-					return;
-				}
-				// Strict: the view is what the feeds should now look like.
-				// 'all' restores every feed; 'only' promotes favorites and
-				// demotes the rest; 'without' does the inverse. Light writes
-				// nothing, so the sweep is a no-op restore pass.
-				$sweep = $this->sweepFeeds();
-				if (!$sweep['ok']) {
-					Minz_Request::bad('View saved, but ' . $sweep['message'] . '.', $this->selfUrl());
-					return;
-				}
-				Minz_Request::good(
-					$to === 'only' ? 'Showing only your favorites.'
-						: ($to === 'without' ? 'Favorites are filtered out.'
-							: 'Favorites no longer filter anything — showing everything.'),
-					$this->selfUrl()
-				);
+				Minz_Request::good($result['message'], $this->selfUrl());
 				return;
-
 			case 'display':
 				// The sidebar row's display state, saved from one form with one
 				// Save button: a rowmode (caret / number / both) plus the label
