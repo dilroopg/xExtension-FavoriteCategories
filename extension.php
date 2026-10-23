@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Favorite Categories
+ * Pinned Categories
  *
  * Pick a few categories as favorites, then filter the sidebar and stream down
  * to just those — or down to everything except those — from one button.
@@ -98,10 +98,8 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			'rowMode' => $this->store()->rowMode(),
 			'rowLabel' => $this->store()->rowLabel(),
 			'button' => $this->store()->buttonContent(),
-			// One field for the UI: 'pinned' or 'favorites'. The store keeps
-			// vocab and icon separately, but they only ever move together.
-			'look' => $this->store()->vocabulary() === 'pinned' && $this->store()->icon() === 'pin'
-				? 'pinned' : 'favorites',
+			// Kept for the app, which reads it: pinned is the only look now.
+			'look' => 'pinned',
 			'filterStyle' => $this->store()->filterStyle(),
 			'mode' => $this->store()->mode(),
 			// _url() returns an HTML-escaped string ("&amp;"), which is correct
@@ -150,11 +148,11 @@ class FavoriteCategoriesExtension extends Minz_Extension
 		try {
 			$this->store()->assertSchema();
 		} catch (Throwable $e) {
-			return 'Favorite Categories: could not open its state store, so nothing was restored. '
+			return 'Pinned Categories: could not open its state store, so nothing was restored. '
 				. 'The extension was left enabled. ' . $e->getMessage();
 		}
 		if (!$this->store()->available()) {
-			return 'Favorite Categories: state store is unusable (' . $this->store()->error() . '), '
+			return 'Pinned Categories: state store is unusable (' . $this->store()->error() . '), '
 				. 'so nothing was restored. The extension was left enabled.';
 		}
 
@@ -171,7 +169,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 		}
 
 		if (!$sweep['ok']) {
-			return 'Favorite Categories: ' . $sweep['message'] . '. Nothing was changed and the '
+			return 'Pinned Categories: ' . $sweep['message'] . '. Nothing was changed and the '
 				. 'extension was left enabled so it can be fixed from its settings page.';
 		}
 
@@ -179,7 +177,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 		// category left pinned at the top with no snapshot would be stuck there
 		// with nothing left to restore it from.
 		if (!$this->store()->restoreAllPositions()) {
-			return 'Favorite Categories: the original category order could not be restored, '
+			return 'Pinned Categories: the original category order could not be restored, '
 				. 'so the extension was left enabled so it can be fixed from its settings page.';
 		}
 		$this->store()->checkpoint('disabled');
@@ -649,22 +647,6 @@ class FavoriteCategoriesExtension extends Minz_Extension
 					$rb = $this->store()->setButtonContent(trim($btn));
 					if (!$rb['ok']) {
 						Minz_Request::bad($rb['message'], $this->selfUrl());
-						return;
-					}
-				}
-				// One setting, two stored halves: the wording (vocab) and the
-				// glyph (icon) always move together.
-				$look = Minz_Request::paramStringNull('look', true);
-				if ($look !== null && trim($look) !== '') {
-					$look = trim($look);
-					if (!in_array($look, ['pinned', 'favorites'], true)) {
-						Minz_Request::bad('Refused: "' . $look . '" is not a symbol option.', $this->selfUrl());
-						return;
-					}
-					$rv = $this->store()->setVocabulary($look);
-					$ri = $this->store()->setIcon($look === 'pinned' ? 'pin' : 'star');
-					if (!$rv['ok'] || !$ri['ok']) {
-						Minz_Request::bad($rv['ok'] ? $ri['message'] : $rv['message'], $this->selfUrl());
 						return;
 					}
 				}

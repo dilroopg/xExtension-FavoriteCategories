@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 /**
- * Favorite Categories — settings.
+ * Pinned Categories — settings.
  *
- * Shape: one list of categories, favorites first, one star button per row. The
+ * Shape: one list of categories, pinned first, one pin button per row. The
  * view control is the same three-state cycle as the sidebar button. Everything
  * diagnostic is collapsed into <details>.
  *
@@ -29,11 +29,11 @@ $url = _url('extension', 'configure', 'e', urlencode($this->getName()));
 // button can never disagree about what "next click" means
 $view = $store->view();
 $nextView = $store->nextView();
-// Labels and titles name the CURRENT state, matching the sidebar star.
-// The noun follows the `look` setting the same way favorite.js builds it.
-$fcNoun = $store->vocabulary() === 'pinned' ? 'pinned' : 'favorite';
-$fcNounCap = $store->vocabulary() === 'pinned' ? 'Pinned' : 'Favorites';
-$fcNounPl = $store->vocabulary() === 'pinned' ? 'pinned' : 'favorites';
+// Labels and titles name the CURRENT state, matching the sidebar pin.
+// One noun, the same one favorite.js builds: pinned.
+$fcNoun = 'pinned';
+$fcNounCap = 'Pinned';
+$fcNounPl = 'pinned';
 $viewLabels = [
 	'all' => ['Mixed', 'Everything is showing — ' . $fcNounPl . ' are not filtering anything'],
 	'only' => ['Just ' . $fcNounCap, 'Only your ' . $fcNoun . ' categories are showing'],
@@ -54,18 +54,18 @@ foreach ($cats as $c) {
 	}
 }
 
-/** One row: star, name, feed count, [Favorite|Unfavorite] */
+/** One row: pin, name, feed count, [Pin|Unpin] */
 $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 	?>
 	<div class="fc-row<?= $isFav ? ' fc-is-fav' : '' ?>">
-		<span class="fc-star" aria-hidden="true"><?= $isFav ? '&#9733;' : '&#9734;' ?></span>
+		<span class="fc-star" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-.12em" fill="<?= $isFav ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" role="presentation"><path d="M9 3h6l-.6 4.2 3.1 3.1v2.2h-4.9V20l-.6 1.2L11.4 20v-7.5H6.5v-2.2l3.1-3.1z"/></svg></span>
 		<span class="fc-name" title="<?= htmlspecialchars($c['name'], ENT_QUOTES) ?>"><?= htmlspecialchars($c['name'], ENT_QUOTES) ?></span>
 		<span class="fc-feeds"><?= $c['feeds'] ?> <?= $c['feeds'] === 1 ? 'feed' : 'feeds' ?></span>
 		<form method="post" action="<?= $url ?>">
 			<input type="hidden" name="_csrf" value="<?= $csrf ?>" />
 			<input type="hidden" name="act" value="<?= $isFav ? 'unfav' : 'fav' ?>" />
 			<input type="hidden" name="cat" value="<?= $c['id'] ?>" />
-			<button class="fc-act" type="submit" title="<?= $isFav ? 'Remove from favorites (the category itself is untouched)' : 'Add this category to favorites' ?>"><?= $isFav ? 'Unfavorite' : 'Favorite' ?></button>
+			<button class="fc-act" type="submit" title="<?= $isFav ? 'Unpin (the category itself is untouched)' : 'Pin this category' ?>"><?= $isFav ? 'Unpin' : 'Pin' ?></button>
 		</form>
 	</div>
 	<?php
@@ -75,7 +75,7 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 
 	<?php if (!$storeOk) { ?>
 		<p class="alert alert-error">
-			The extension cannot reach its own settings file, so favoriting is unavailable:
+			The extension cannot reach its own settings file, so pinning is unavailable:
 			<?= htmlspecialchars($store->error(), ENT_QUOTES) ?>
 		</p>
 	<?php } ?>
@@ -88,13 +88,13 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 
 	<?php if ($favRows === []) { ?>
 		<div class="fc-empty">
-			<strong>No favorites yet.</strong><br />
-			Press <em>Favorite</em> next to a category below, or the star on a category box under
-			<em>Subscription management</em>. Favoriting never changes the category or its feeds — it
+			<strong>Nothing pinned yet.</strong><br />
+			Press <em>Pin</em> next to a category below, or the pin on a category box under
+			<em>Subscription management</em>. Pinning never changes the category or its feeds — it
 			only marks it for the filter.
 		</div>
 	<?php } else { ?>
-		<div class="fc-group-label">Favorites &middot; <?= count($favRows) ?></div>
+		<div class="fc-group-label">Pinned &middot; <?= count($favRows) ?></div>
 		<div class="fc-list">
 			<?php foreach ($favRows as $c) { $row($c, true); } ?>
 		</div>
@@ -104,7 +104,7 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 	<div class="fc-list">
 		<?php foreach ($otherRows as $c) { $row($c, false); } ?>
 		<?php if ($otherRows === []) { ?>
-			<div class="fc-empty">Every category is a favorite.</div>
+			<div class="fc-empty">Every category is pinned.</div>
 		<?php } ?>
 	</div>
 
@@ -136,16 +136,16 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 		<p class="fc-hint">
 			<?php if ($rcaInstalled) { ?>
 				<strong>RightClickActions is installed.</strong> Right-clicking a category in the
-				sidebar shows <em>Add to favorites</em> / <em>Remove from favorites</em>.
+				sidebar shows <em>Pin</em> / <em>Unpin</em>.
 			<?php } else { ?>
 				<strong>Needs the RightClickActions extension.</strong> This extension adds an
-				<em>Add to favorites</em> / <em>Remove from favorites</em> item to the sidebar's
+				<em>Pin</em> / <em>Unpin</em> item to the sidebar's
 				right-click menu — but that menu belongs to
 				<a href="https://github.com/printfuck/xExtension-RightClickActions" target="_blank" rel="noopener">RightClickActions</a>,
 				not to this extension. <strong>Without it installed FreshRSS has no right-click
 				menu at all</strong>, so there is nothing to add the item to. Everything else — the
-				<em>Favorite</em> button on each row above, the ☆ under <em>Subscription
-				management</em>, and the star above the sidebar — works either way.
+				<em>Pin</em> button on each row above, the pin under <em>Subscription
+				management</em>, and the pin above the sidebar — works either way.
 			<?php } ?>
 		</p>
 	</div>
@@ -158,7 +158,7 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 		<div class="fc-card">
 			<p class="fc-hint">
 				Currently: <strong><?= htmlspecialchars($viewLabel, ENT_QUOTES) ?></strong>.
-				The same control as the star above the sidebar.
+				The same control as the pin above the sidebar.
 			</p>
 			<button class="btn btn-important" type="submit" title="<?= htmlspecialchars($nextViewTitle, ENT_QUOTES) ?>">
 				<?= htmlspecialchars($nextViewLabel, ENT_QUOTES) ?>
@@ -179,7 +179,7 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 				<input type="radio" name="mode" value="light" <?= $mode === 'light' ? 'checked' : '' ?> />
 				<strong>Light</strong> <span class="fc-hint">&mdash; visual only, writes nothing</span>
 			</label>
-			<label class="fc-mode-opt" title="Feeds are given FreshRSS's own visibility settings: favorites are promoted, everything else pushed down. The previous value of every feed is saved and restored when you switch back or unfavorite.">
+			<label class="fc-mode-opt" title="Feeds are given FreshRSS's own visibility settings: pinned categories are promoted, everything else pushed down. The previous value of every feed is saved and restored when you switch back or unpin.">
 				<input type="radio" name="mode" value="strict" <?= $mode === 'strict' ? 'checked' : '' ?> />
 				<strong>Strict</strong> <span class="fc-hint">&mdash; filters for every client, your phone included</span>
 			</label>
@@ -191,17 +191,17 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 	</form>
 
 	<?php if ($mode === 'strict') { ?>
-	<div class="fc-group-label">Strict: where non-favorites go</div>
+	<div class="fc-group-label">Strict: where unpinned categories go</div>
 	<form method="post" action="<?= $url ?>">
 		<input type="hidden" name="_csrf" value="<?= $csrf ?>" />
 		<input type="hidden" name="act" value="demote" />
 		<div class="fc-card">
-			<label class="fc-mode-opt" title="Non-favorites drop out of the main stream on every client, but stay readable in their own category and in reader apps. This uses FreshRSS's 'Show in its feed' (-5).">
+			<label class="fc-mode-opt" title="Unpinned categories drop out of the main stream on every client, but stay readable in their own category and in reader apps. This uses FreshRSS's 'Show in its feed' (-5).">
 				<input type="radio" name="demote" value="stream" <?= $demote === 'stream' ? 'checked' : '' ?> />
 				<strong>Out of the main stream</strong>
 				<span class="fc-hint">&mdash; still readable in their category</span>
 			</label>
-			<label class="fc-mode-opt" title="Non-favorites are removed everywhere, exactly like Hidden Categories' Strict mode. This uses 'Do not show' (-10), so they are not returned to any client at all, including reader apps.">
+			<label class="fc-mode-opt" title="Unpinned categories are removed everywhere, exactly like Hidden Categories' Strict mode. This uses 'Do not show' (-10), so they are not returned to any client at all, including reader apps.">
 				<input type="radio" name="demote" value="gone" <?= $demote === 'gone' ? 'checked' : '' ?> />
 				<strong>Gone entirely</strong>
 				<span class="fc-hint">&mdash; not anywhere, same as Hidden's Strict</span>
@@ -222,8 +222,8 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 	?>
 	<div class="fc-card">
 		<p class="fc-hint">
-			How the favorites row in the sidebar tree labels itself. Display only — nothing about
-			which categories are favorites, or what the star button does.
+			How the pinned row in the sidebar tree labels itself. Display only — nothing about
+			which categories are pinned, or what the pin button does.
 		</p>
 
 		<?php // the saved state, drawn as the real row: this is the confirmation that a change landed ?>
@@ -248,7 +248,7 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 		// obscures the row. A radio group says exactly which of the three it is.
 		$modes = [
 			'caret' => ['Nothing but the caret', 'the row draws no text at all'],
-			'number' => ['The number only', 'how many categories are favorites'],
+			'number' => ['The number only', 'how many categories are pinned'],
 			'both' => ['Label and number', 'the label, then the number'],
 		];
 		?>
@@ -269,19 +269,6 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 				<?php } ?>
 			</div>
 
-			<?php
-			// One choice, two options: they travel together. A pin with the
-			// word "favorites" is not a combination worth offering.
-			$pinMode = $store->vocabulary() === 'pinned' && $store->icon() === 'pin';
-			?>
-			<label class="fc-label-field">
-				<span>Symbol and wording</span>
-				<select name="look" class="fc-label-input" data-fc-look>
-					<option value="favorites" <?= $pinMode ? '' : 'selected' ?>>Star &mdash; Just Favorites / Hide Favorites</option>
-					<option value="pinned" <?= $pinMode ? 'selected' : '' ?>>Pin &mdash; Just Pinned / Hide Pinned</option>
-				</select>
-			</label>
-
 			<label class="fc-label-field">
 				<span>Filtered categories</span>
 				<select name="filterstyle" class="fc-label-input" data-fc-filterstyle>
@@ -299,13 +286,13 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 			</label>
 
 			<?php
-			// What the star button itself draws. A select rather than a pair of
+			// What the pin button itself draws. A select rather than a pair of
 			// switches, because "both" and "neither" are not independent choices:
 			// exactly one of symbol/text, or both — never neither.
 			$btnContent = $store->buttonContent();
 			?>
 			<label class="fc-label-field fc-button-field">
-				<span>Star button shows</span>
+				<span>Pin button shows</span>
 				<select name="button" class="fc-label-input" data-fc-button>
 					<option value="both" <?= $btnContent === 'both' ? 'selected' : '' ?>>Symbol and text</option>
 					<option value="icon" <?= $btnContent === 'icon' ? 'selected' : '' ?>>Symbol only</option>
@@ -337,10 +324,10 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 	<details class="fc-details">
 		<summary>Details</summary>
 		<dl>
-			<dt>Favorites</dt><dd><?= count($favRows) ?> of <?= count($cats) ?> categories</dd>
+			<dt>Pinned</dt><dd><?= count($favRows) ?> of <?= count($cats) ?> categories</dd>
 			<dt>View</dt><dd><?= htmlspecialchars($viewLabel, ENT_QUOTES) ?></dd>
 			<dt>Written to feeds</dt><dd><?= $mode === 'strict'
-				? 'Strict: one column (visibility) on every feed, previous values saved in feed_snap and restored when you switch back, unfavorite, or disable. Feeds in categories hidden by another extension are never touched.'
+				? 'Strict: one column (visibility) on every feed, previous values saved in feed_snap and restored when you switch back, unpin, or disable. Feeds in categories hidden by another extension are never touched.'
 				: 'Nothing. Light filters in the browser only.' ?></dd>
 			<dt>On since</dt><dd><?= htmlspecialchars($store->getMeta('first_enabled_at', '—'), ENT_QUOTES) ?></dd>
 			<dt>Last disabled</dt><dd><?= htmlspecialchars($store->getMeta('last_disabled_at', 'never'), ENT_QUOTES) ?></dd>
@@ -349,7 +336,7 @@ $row = static function (array $c, bool $isFav) use ($url, $csrf): void {
 				never takes over a row another extension has hidden.</dd>
 			<dt>Switching off</dt><dd>Strict restores every feed it changed, then disables. If the
 				restore cannot finish, the disable is refused and the extension stays enabled so it
-				can be fixed from here. Favorites and display options are kept either way.</dd>
+				can be fixed from here. Pins and display options are kept either way.</dd>
 		</dl>
 	</details>
 </div>

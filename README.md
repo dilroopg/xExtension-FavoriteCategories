@@ -1,29 +1,35 @@
-# Favorite Categories
+# Pinned Categories
+
+> **The name changed in 1.4; the folder did not.** It is still
+> `xExtension-FavoriteCategories`, the class is still `FavoriteCategoriesExtension`, and the
+> `data-fc-fav` attributes, `favCategory` helpers and GitHub repository name are unchanged, so
+> existing pins, the app and the Hidden Categories sibling keep working across the rename. Only the
+> words a person reads are "pinned".
 
 Part of [hardlysleeping's FreshRSS extensions](https://github.com/hardlysleeping/freshrss-extensions) — see the hub for everything else.
 
 > **Companion: [Hidden Categories](https://github.com/hardlysleeping/xExtension-HiddenCategories)** — the
 > opposite job: put categories *away* rather than filtering down to a few. The two work together
-> fine and neither needs the other — Favorite removes rows it filters out but never selects a row
+> fine and neither needs the other — Pin removes rows it filters out but never selects a row
 > another extension has hidden, and in Strict it never writes to a feed inside a hidden category.
 > Installed together, their buttons share one row above the sidebar.
 
 **Filter your sidebar down to the categories you actually read.** Mark a few categories as
-favorites, then flip one star button to see only those — or everything except those.
+pinned, then flip one pin button to see only those — or everything except those.
 
 FreshRSS can group multiple categories into a folder, but that doesn't help when the categories you
 care about are scattered across several folders: the main stream is still everything, and the
-sidebar is still all of it. This adds a favorites filter that works across folders.
+sidebar is still all of it. This adds a pinned filter that works across folders.
 
 Nothing is deleted, renamed or moved, and no subscription is ever touched. **Nothing is written to a
-feed in Light mode** — favoriting is a filter in your browser, not a change to your subscriptions.
-The one thing it does write is a favorited category's display position, so favorites sort to the
-top; that value is recorded first and restored when you unfavorite.
+feed in Light mode** — pinning is a filter in your browser, not a change to your subscriptions.
+The one thing it does write is a pinned category's display position, so pinned sort to the
+top; that value is recorded first and restored when you unpin.
 
 ## What it looks like
 
-The controls live in the sidebar they affect: the filter button sits above the tree, and favorited
-categories carry a **favorite** tag on their row.
+The controls live in the sidebar they affect: the filter button sits above the tree, and pinned
+categories carry a **pin** tag on their row.
 
 ![The Feed Indent control in the sidebar](https://raw.githubusercontent.com/hardlysleeping/freshrss-extensions/master/screenshots/sidebar-indent.png)
 
@@ -42,53 +48,49 @@ git clone https://github.com/hardlysleeping/xExtension-FavoriteCategories.git
 unpack it in `FreshRSS/extensions/`. Unpacking a newer zip over the top updates it and leaves your
 settings alone.
 
-Then open **Settings → Extensions → Favorite Categories → enable**.
+Then open **Settings → Extensions → Pinned Categories → enable**.
 
 **Requirements:** FreshRSS 1.28.0 or newer. Nothing else — no build step, no config file, no other
 extension. Tested on FreshRSS 1.30.1 / PHP 8.4.
 
 ## Quick start
 
-1. Press **Favorite** next to a category in the extension's settings, or the **☆** on a category
+1. Press **Pin** next to a category in the extension's settings, or the **📌** on a category
    box under **Subscription management**.
-2. The favorited category moves to the top of the sidebar and gains a small **favorite** tag.
-3. A star button appears above the sidebar. Click it to cycle through the three views.
-4. To stop filtering, click until the star is hollow again.
+2. The pinned category moves to the top of the sidebar and gains a small **pin** tag.
+3. A pin button appears above the sidebar. Click it to cycle through the three views.
+4. To stop filtering, click until the pin is hollow again.
 
-## The star
+## The pin
 
-The star *is* the button, and its icon shows which view you're in. Clicking cycles:
+The pin *is* the button, and its icon shows which view you're in. Clicking cycles:
 
-| star | view | button reads | sidebar | stream |
+| pin | view | button reads | sidebar | stream |
 |---|---|---|---|---|
-| ☆ hollow | **everything** | **Mixed** | none of your categories are filtered by this extension | nothing filtered |
-| ★ filled | **favorites only** | **Just Favorites** | only favorited categories are listed | only articles from favorited categories |
-| ★̸ slashed | **favorites filtered out** | **Hide Favorites** | favorited categories are removed | only articles from the rest |
+| 📌 hollow | **everything** | **Mixed** | none of your categories are filtered by this extension | nothing filtered |
+| 📌 filled | **pinned only** | **Just Pinned** | only pinned categories are listed | only articles from pinned categories |
+| 📌̸ slashed | **pinned filtered out** | **Hide Pinned** | pinned categories are removed | only articles from the rest |
 
 By default the filtered views **remove** the rows they filter out, so the sidebar shows exactly what
 the stream is showing. A setting can switch that to **dimming** instead: the same rows stay in place at
 32% opacity, so a stray click can never leave an apparently empty sidebar. One more click on the
 button brings everything back either way.
 
-Favorited categories carry a small **favorite** tag in every view, so you can tell at a glance which
+Pinned categories carry a small **pin** tag in every view, so you can tell at a glance which
 rows the filter is acting on — including in *everything*, where nothing is filtered at all.
 
 ## Display settings
 
-Two dropdowns on the settings page. Both change only what you see — neither changes what is stored,
-which feeds are touched, or how the filtering works.
+The settings page changes only what you see — never what is stored, which feeds are touched, or how
+the filtering works.
 
 | Setting | Values | Default |
 |---|---|---|
-| **Symbol and wording** | Star or Pin (table below) | Star |
 | **Filtered categories** | **Hidden** — removed from the list · **Dimmed** — kept, faded to 32% | Hidden |
 
-**Symbol and wording** swaps the glyph and the noun together:
-
-| Option | Button glyph | Button labels | Row tag |
-|---|---|---|---|
-| **Star** (default) | ☆ hollow / ★ filled / ★̸ slashed | Mixed · Just Favorites · Hide Favorites | FAVORITE |
-| **Pin** | pushpin, hollow / filled / slashed | Mixed · Just Pinned · Hide Pinned | PINNED |
+There is no symbol or wording choice any more: the mark is a pushpin and the word is *pinned*,
+everywhere the extension speaks. 1.3 offered a star instead, and the two extensions could end up
+calling the same fact two different things.
 
 **Filtered categories** decides what happens to rows the current view filters out — in the sidebar
 and in the stream alike. *Hidden* removes them; *Dimmed* leaves them in place at 32% opacity, so a
@@ -109,29 +111,29 @@ One question decides it: **should your phone and reader apps see the filter too?
 | what it writes | nothing at all | FreshRSS's per-feed visibility, old value saved and restored |
 | speed when switching | instant | a sweep (see below) |
 
-In Strict, favorites are promoted to *Show in important feeds* and everything else is pushed down.
+In Strict, pinned are promoted to *Show in important feeds* and everything else is pushed down.
 **Where they go** is a second setting, shown only in Strict:
 
 - **Out of the main stream** (−5) — off the main stream everywhere, still readable in its own
   category and in reader apps.
 - **Gone entirely** (−10) — not returned to any client at all, exactly like Hidden Categories'
-  Strict mode. While this is in force, a non-favorite category's own page is empty too. That is the
+  Strict mode. While this is in force, a non-pin category's own page is empty too. That is the
   cost of it also being gone from your phone.
 
-Switching back to Light restores every feed. So does unfavoriting, changing the demote setting, or
+Switching back to Light restores every feed. So does unpinning, changing the demote setting, or
 disabling the extension.
 
-## What "favorite" does and doesn't do
+## What "pin" does and doesn't do
 
 **Does:** filter the sidebar and the main stream — in this browser in Light, on every client in
 Strict.
 
 **Doesn't:**
 
-- **Change your subscriptions.** A category is favorited or not; its feeds, name, and folder stay
+- **Change your subscriptions.** A category is pinned or not; its feeds, name, and folder stay
   exactly as they were.
 - **Ever touch a feed in a hidden category.** If a category is hidden by a hiding extension, this
-  one leaves its feeds alone entirely — so a favorited category that is also hidden stays hidden.
+  one leaves its feeds alone entirely — so a pinned category that is also hidden stays hidden.
 - **Touch read state.** Nothing is marked read, nothing is deleted.
 
 ## Works with other extensions
@@ -139,30 +141,30 @@ Strict.
 This extension is deliberately built to coexist. Two things make that true:
 
 - **Every filter rule excludes rows another extension has hidden.** A category that is both
-  favorited and hidden stays hidden in every favorites view — the hiding extension's row is never
-  selected by a favorites rule, so its visibility is left entirely to that extension.
+  pinned and hidden stays hidden in every pinned view — the hiding extension's row is never
+  selected by a pinned rule, so its visibility is left entirely to that extension.
 - **Only the rows this extension is allowed to touch are hidden.** Because of that exclusion, a
-  favorites view never removes a row somebody else put away, and never brings one back.
+  pinned view never removes a row somebody else put away, and never brings one back.
 
-**Neither extension needs the other installed.** Alone, this is a complete favorites filter. With a
+**Neither extension needs the other installed.** Alone, this is a complete pinned filter. With a
 hiding extension also installed, the two buttons share one row above the sidebar: one control takes
 the full width on its own, two split it evenly with a gap between them. Each side sizes itself from
 its own row, so neither has to detect the other.
 
 **On the feeds themselves (Strict):** this extension never writes to a feed inside a hidden
-category. Hiding owns those rows; favorites only reorders the rest. So the two can never write the
-same feed, and no favorites click can bring back something you hid.
+category. Hiding owns those rows; pinned only reorders the rest. So the two can never write the
+same feed, and no pinned click can bring back something you hid.
 
 ## Three ways to label the sidebar row
 
-The favorites row at the bottom of the sidebar labels itself one of three ways, set under
+The pinned row at the bottom of the sidebar labels itself one of three ways, set under
 **Sidebar** in the settings:
 
 | state | the row shows |
 |---|---|
 | **Nothing but the caret** | no text at all — just the disclosure arrow |
 | **The number only** | `3` |
-| **Label and number** | `Favorites 3` (any text; default label is `Favorites`) |
+| **Label and number** | `Pinned 3` (any text; default label is `Pinned`) |
 
 The label under **Label text** is kept when you switch to another state, so moving to caret-only
 and back never loses it. All three save with **one Save button**, with a live **After saving**
@@ -170,9 +172,9 @@ preview and an "Unsaved changes" line until you commit.
 
 ## What it writes
 
-**Always:** one attribute on a favorited category — its `position`, which is how core orders the
-sidebar. The previous value is recorded first and put back on unfavorite, so the original order
-returns exactly (including the case where it had no position at all). This is what pins favorites
+**Always:** one attribute on a pinned category — its `position`, which is how core orders the
+sidebar. The previous value is recorded first and put back on unpin, so the original order
+returns exactly (including the case where it had no position at all). This is what pins pinned
 to the top; nothing else about a category is changed.
 
 **Light:** nothing else. **Strict:** additionally one column on every feed — visibility — with the
@@ -180,11 +182,11 @@ previous value recorded first and put back afterwards. Nothing else about a feed
 
 Its state lives in its own SQLite file —
 `data/users/<your user>/extensions/FavoriteCategories/state.sqlite` — holding which categories are
-favorites, the current view, and the two display options. Deleting the extension folder leaves that
+pinned, the current view, and the two display options. Deleting the extension folder leaves that
 file alone; delete the file itself to forget everything.
 
 Disabling restores every feed it changed, then disables. If the restore cannot finish the disable is
-**refused** and the extension stays enabled so you can fix it from its settings page. Your favorites
+**refused** and the extension stays enabled so you can fix it from its settings page. Your pinned
 and display options are kept either way, and come back when you re-enable it.
 
 ## What it costs
@@ -193,11 +195,11 @@ All cost is at the moment you click — page loads stay at normal speed, and not
 background (no cron, no external service, no network calls). Light mode costs nothing at all; every
 number below is Strict.
 
-- **Favoriting or unfavoriting** re-runs the sweep, because it changes what the feeds should look
-  like: favorites move to *Show in important feeds*, everything else to the demote target.
-- **Switching view or changing the demote setting** sweeps too. Entering *only favorites* one way
+- **Pinning or unpinning** re-runs the sweep, because it changes what the feeds should look
+  like: pinned move to *Show in important feeds*, everything else to the demote target.
+- **Switching view or changing the demote setting** sweeps too. Entering *only pinned* one way
   and leaving it the other means two passes.
-- **Cost scales with your feed count, not with how many categories you favorite** — every feed has
+- **Cost scales with your feed count, not with how many categories you pin** — every feed has
   to be set to one of the two values. Expect a couple of seconds at ~1000 feeds, on a local
   instance; a slow host or a remote database will take longer.
 - **Hidden feeds keep downloading.** None of this changes what is fetched, so unread counts can
@@ -209,9 +211,9 @@ restores them.
 
 ## Troubleshooting
 
-**The star isn't there.** It appears once at least one category is a favorite.
+**The pin isn't there.** It appears once at least one category is a pin.
 
-**Clicking the star changes the sidebar but not the stream.** The stream filter matches articles by
+**Clicking the pin changes the sidebar but not the stream.** The stream filter matches articles by
 their category id. A theme that strips `data-category` from article rows will filter the sidebar but
 leave the stream alone.
 
@@ -230,13 +232,22 @@ Written with AI assistance, as a sibling of
 [Hidden Categories](https://github.com/hardlysleeping/xExtension-HiddenCategories) and sharing its
 architecture — the same store pattern, the same page-payload hook, the same single-button view
 cycle — but with no dependency on it in either direction. Tested against a real FreshRSS 1.30.1
-install: favoriting and unfavoriting, the three views, the display options, disable/enable round
+install: pinning and unpinning, the three views, the display options, disable/enable round
 trips, and running both extensions at once.
 
 That's disclosed so you know what you're installing. **Forking and reading the code is
 encouraged.** The parts worth reading are `store.php` (the whole persistent state),
-`extension.php` (`injectJsVars()`, the page payload) and `static/favorite.js` (the filtering, and
+`extension.php` (`injectJsVars()`, the page payload) and `static/pin.js` (the filtering, and
 the comment at the top explaining the non-conflict contract).
+
+**1.4.0** — one name, no choice.
+
+- Renamed to **Pinned Categories**. The folder, class, state file and GitHub repository keep the
+  original `FavoriteCategories` name, so nothing has to be migrated.
+- **The star is gone.** The symbol and wording setting is removed: the mark is a pushpin and the
+  word is *pinned* in the button, the row tag, the settings page and the right-click item. Stored
+  pins are untouched, and a stored `vocab`/`icon` is simply ignored.
+- The app's own Pinned/Favourites switch is gone for the same reason: one fact, one word.
 
 **1.3.2** — fix the settings-page layout for the new dropdowns.
 
@@ -255,13 +266,11 @@ the comment at the top explaining the non-conflict contract).
 
 **1.3.0** — one display setting, and shorter button labels.
 
-- **Symbol and wording dropdown.** Pick *Star* (the 1.x look, the default) or *Pin*: the button then
-  draws a pushpin and says **Just Pinned / Hide Pinned**, and the row tag reads **PINNED**. Stored
-  data, filtering behaviour and internals are identical either way.
-- **Button labels shortened.** *All* is now **Mixed**, *Only favorites* is now **Just Favorites**, and
-  *No favorites* is now **Hide Favorites**.
+
+- **Button labels shortened.** *All* is now **Mixed**, *Only pinned* is now **Just Pinned**, and
+  *No pinned* is now **Hide Pinned**.
 - The Subscription page's per-category button and the right-click menu item now follow the same
-  setting instead of always drawing a star.
+  look instead of always drawing a star.
 
 **1.2.5** — the button label names the state you are in, and matches the eye button's size.
 
@@ -274,8 +283,8 @@ The label now names what is on screen **right now**:
 | You are looking at | Button reads |
 |---|---|
 | everything, no filter | **Mixed** |
-| just your favorites | **Just favorites** |
-| favorites removed | **Hide favorites** |
+| just your pinned | **Just pinned** |
+| pinned removed | **Hide pinned** |
 
 The tooltip says the same thing in a sentence, and the label is now the same text size as the
 category-hiding extension's eye button — it was 0.92em against the eye's 0.88em, so the two
@@ -284,67 +293,67 @@ buttons disagreed in the shared sidebar row. Clicking still cycles in the same o
 **1.2.4** — the button labels now name the destination.
 
 The labels named the *action*, so the normal state's button said *Show* while the click actually
-filtered **down** to favorites only — a hiding action wearing a showing word.
+filtered **down** to pinned only — a hiding action wearing a showing word.
 
 Each label now says what you will be looking at **after** the click:
 
 | Showing now | Button says | After clicking |
 |---|---|---|
-| everything, no filter | **Only favorites** | just your favorite categories |
-| just your favorites | **Hide** | favorites removed |
-| favorites removed | **Show all** | everything, no filter |
+| everything, no filter | **Only pinned** | just your pin categories |
+| just your pinned | **Hide** | pinned removed |
+| pinned removed | **Show all** | everything, no filter |
 
 Same three states, same cycle, same filtering. Labels and tooltips only.
 
 **1.2.1** — README corrections.
 
 - The README described the old dimming behaviour in five places, contradicting 1.2.0's real
-  hiding. Corrected, and the favorite tag and top-of-sidebar pinning are now documented in the
+  hiding. Corrected, and the pin tag and top-of-sidebar pinning are now documented in the
   feature description instead of only in the changelog.
 - The troubleshooting section no longer tells you to `chown` the state directory by hand — that
   step is gone, because the extension repairs it itself.
 
-**1.2.0** — favorites are pinned, tagged, and the filters actually filter.
+**1.2.0** — pinned are pinned, tagged, and the filters actually filter.
 
-- **Favorites sort to the top.** Favoriting writes the category's `position` (the attribute core
-  orders the sidebar by), snapshotting the old value and restoring it exactly on unfavorite. A
-  reconcile on load pins anything that was favorited before this existed, and releases a pin whose
-  category is no longer a favorite — it writes nothing in steady state.
-- **A "favorite" tag** on every favorited category, in every view, styled like the tag a
+- **Pinned sort to the top.** Pinning writes the category's `position` (the attribute core
+  orders the sidebar by), snapshotting the old value and restoring it exactly on unpin. A
+  reconcile on load pins anything that was pinned before this existed, and releases a pin whose
+  category is no longer a pin — it writes nothing in steady state.
+- **A "pin" tag** on every pinned category, in every view, styled like the tag a
   category-hiding extension puts on its own rows.
-- **The filtered views now hide instead of dimming.** *Only favorites* removes non-favorites and
-  *Hide favorites* removes the favorites — `display: none`, not `opacity`. Rows another extension
-  hid are never selected, so a category that is both hidden and favorited stays as that extension
+- **The filtered views now hide instead of dimming.** *Only pinned* removes non-pinned and
+  *Hide pinned* removes the pinned — `display: none`, not `opacity`. Rows another extension
+  hid are never selected, so a category that is both hidden and pinned stays as that extension
   left it.
 - **The state directory repairs itself.** A directory created by a different user than the web
-  server (root, from an unpack or a CLI run) previously left the store unopenable, so favoriting did
+  server (root, from an unpack or a CLI run) previously left the store unopenable, so pinning did
   nothing and logged a SQLSTATE error. Ownership and mode are now repaired on every open, including
   SQLite's `-wal`/`-shm` files, and the settings page says plainly if the filesystem still refuses.
   Unpack and enable is the whole install again.
 
 **1.1.0** — Strict mode.
 
-- Favorites now filter for **every** client, not just the browser: favorites are promoted to *Show
+- Pinned now filter for **every** client, not just the browser: pinned are promoted to *Show
   in important feeds* and everything else is pushed down, with every previous value snapshotted and
-  restored on unfavorite, mode switch, demote change, or disable.
-- **Where non-favorites go** is a setting, shown only in Strict: *out of the main stream* (−5, still
+  restored on unpin, mode switch, demote change, or disable.
+- **Where non-pinned go** is a setting, shown only in Strict: *out of the main stream* (−5, still
   readable in their category) or *gone entirely* (−10, not returned to any client at all — the same
   as Hidden Categories' Strict).
-- Feeds in a category hidden by another extension are never touched, so a hidden favorite stays
+- Feeds in a category hidden by another extension are never touched, so a hidden pin stays
   hidden and the two extensions can't write the same feed.
 - Light remains the default and still writes nothing.
 
-**1.0.1** — right-click favoriting, and a button content option.
+**1.0.1** — right-click pinning, and a button content option.
 
-- Right-clicking a category offers *Add to favorites* / *Remove from favorites*. This was missing
+- Right-clicking a category offers *Add to pinned* / *Remove from pinned*. This was missing
   from 1.0.0. **Requires [RightClickActions](https://github.com/printfuck/xExtension-RightClickActions)**
   — that menu isn't ours, and FreshRSS has no right-click menu without it. The settings page now
   says so.
-- **Star button shows**: symbol and text, symbol only, or text only.
+- **Pin button shows**: symbol and text, symbol only, or text only.
 - Button text wraps instead of clipping when two extensions share the row.
 
-**1.0.0** — first release. Three-state star (everything / only favorites / favorites filtered out),
-favoriting from the settings list, the subscription page star, and a right-click item; Light-only.
+**1.0.0** — first release. Three-state star (everything / only pinned / pinned filtered out),
+pinning from the settings list, the subscription page star, and a right-click item; Light-only.
 
 ## Licence
 

@@ -71,14 +71,13 @@
 	var view = FC.view === 'only' || FC.view === 'without' ? FC.view : 'all';
 	var next = FC.next || 'all';
 
-	// The `look` setting decides both the noun and the glyph; they are never set
-	// independently. "favorites" is the original 1.x star look and the default.
+	// One word and one glyph: a category is pinned. The star and the word
+	// "favorite" were settings until 1.4; nothing reads FC.look any more.
 	// Declared here, at the top, because the badge (set below) needs NOUN_CAP
 	// before the button code runs.
-	var VOCAB = FC.look === 'pinned' ? 'pinned' : 'favorites';
-	var NOUN = VOCAB === 'favorites' ? 'favorite' : 'pinned';
-	var NOUN_PL = VOCAB === 'favorites' ? 'favorites' : 'pinned';
-	var NOUN_CAP = VOCAB === 'favorites' ? 'Favorites' : 'Pinned';
+	var NOUN = 'pinned';
+	var NOUN_PL = 'pinned';
+	var NOUN_CAP = 'Pinned';
 	// 'hide' (default) removes filtered rows; 'dim' leaves them at 32% opacity.
 	var DIM = FC.filterStyle === 'dim';
 
@@ -249,8 +248,8 @@
 	// NOTE: internals keep the original favorite-based names (favCategory,
 	// data-fc-fav, favorite.js, view states all/only/without) on purpose —
 	// data-fc-fav is a contract with the Hidden Categories sibling. The user
-	// -facing words and glyph come from the `look` setting below. Do not
-	// rename these identifiers as a "cleanup".
+	// -facing words are "pinned" and the glyph is a pushpin. Do not rename
+	// these identifiers as a "cleanup".
 
 	// ---- 5. the one button: all -> only -> without -> all ------------------
 	//
@@ -258,30 +257,15 @@
 	// they take the theme's text colour and size, with no icon-font or image
 	// dependency.
 	//
-	//   hollow      -> all:      favorites filter nothing
-	//   filled      -> only:     just the favorites are shown
-	//   slashed     -> without:  favorites are filtered out
-	// Glyphs, chosen by the `icon` setting. Same viewBox, stroke weight and
-	// currentColor treatment so the two read at the same size in the shared
-	// sidebar row — a pin that renders smaller than the sibling eye looks
-	// broken rather than different.
-	var STAR = '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>';
+	//   hollow      -> all:      pins filter nothing
+	//   filled      -> only:     just the pinned categories are shown
+	//   slashed     -> without:  pinned categories are filtered out
+	// One set of glyphs: a pushpin, at the same viewBox, stroke weight and
+	// currentColor treatment as the sibling eye, so it sits in the shared
+	// sidebar row at the same size.
 	// A pushpin: head, shaft, and a point. Filled it reads as "pinned" at
 	// sidebar size; the hollow variant is the unpinned state.
 	var PIN = '<path d="M9 3h6l-.6 4.2 3.1 3.1v2.2h-4.9V20l-.6 1.2L11.4 20v-7.5H6.5v-2.2l3.1-3.1z"/>';
-
-	var ICONS = {
-		all:
-			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
-			+ ' stroke-linejoin="round" aria-hidden="true">' + STAR + '</svg>',
-		only:
-			'<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.7"'
-			+ ' stroke-linejoin="round" aria-hidden="true">' + STAR + '</svg>',
-		without:
-			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
-			+ ' stroke-linejoin="round" aria-hidden="true">' + STAR
-			+ '<path d="M4 20L20 4" stroke-width="1.9" stroke-linecap="round"/></svg>'
-	};
 
 	var PIN_ICONS = {
 		all:
@@ -296,9 +280,7 @@
 			+ '<path d="M4 20L20 4" stroke-width="1.9" stroke-linecap="round"/></svg>'
 	};
 
-	// The glyph, from the same `look` setting.
-	var GLYPH = VOCAB === 'pinned' ? 'pin' : 'star';
-	var GLYPHS = GLYPH === 'star' ? ICONS : PIN_ICONS;
+	var GLYPHS = PIN_ICONS;
 
 	var LABELS = {
 		// label names the NEXT click does; the icon shows the CURRENT state
@@ -501,7 +483,7 @@
 			btn.className = 'btn fc-sub-btn' + (fav ? ' fc-sub-on' : '');
 			// Same glyph as the sidebar button: the filled shape when this
 			// category is already in the set, hollow when it is not.
-			var shape = GLYPH === 'star' ? STAR : PIN;
+			var shape = PIN;
 			btn.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em"'
 				+ ' fill="' + (fav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.7"'
 				+ ' stroke-linejoin="round" aria-hidden="true">' + shape + '</svg>';
@@ -568,8 +550,7 @@
 				item.className = 'fc-ctx-item';
 				item.setAttribute('role', 'menuitem');
 				item.style.cssText = 'padding:6px 14px;cursor:pointer;display:flex;gap:8px;align-items:center';
-				item.innerHTML = '<span aria-hidden="true">' + (GLYPH === 'star' ? (fav ? '\u2605' : '\u2606') : '') + '</span>'
-					+ '<span>' + (fav ? 'Remove from ' + NOUN_PL : 'Add to ' + NOUN_PL) + '</span>'
+				item.innerHTML = '<span>' + (fav ? 'Remove from ' + NOUN_PL : 'Add to ' + NOUN_PL) + '</span>'
 					+ (info.feeds != null ? '<span style="opacity:.5;font-size:.85em;margin-left:auto">'
 						+ info.feeds + '</span>' : '');
 				item.addEventListener('mouseenter', function () {
