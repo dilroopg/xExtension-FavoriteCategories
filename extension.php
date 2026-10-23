@@ -430,6 +430,25 @@ class FavoriteCategoriesExtension extends Minz_Extension
 	/** POST handling only. Everything that must happen on ANY settings-page
 	 *  render lives in handleConfigureAction() above. */
 	/**
+	 * True when the extension's own state store can be opened.
+	 *
+	 * The settings page calls assertSchema() on every render, but the adapter can
+	 * reach these methods on an extension that was unpacked and enabled without
+	 * that page ever being visited — no state directory exists yet. Creating it
+	 * here is what the store's own contract asks for, and it keeps a first call
+	 * from failing with a bare SQLite error.
+	 */
+	private function assertStoreUsable(): bool
+	{
+		try {
+			return $this->store()->assertSchema();
+		} catch (Throwable $e) {
+			Minz_Log::warning('FavoriteCategories: store check failed: ' . $e->getMessage());
+			return false;
+		}
+	}
+
+	/**
 	 * Favorite or unfavorite one category.
 	 *
 	 * Single behaviour path for the settings form and the HardlyRead adapter:
@@ -447,33 +466,41 @@ class FavoriteCategoriesExtension extends Minz_Extension
 	 */
 	public function setCategoryFavorite(int $catId, bool $favorite): array
 	{
-		$fail = static fn (string $message, bool $state): array => [
+		$fail = static fn (string $code, string $message, bool $state): array => [
 			'ok' => false,
 			'changed' => false,
 			'converged' => false,
 			'catId' => $catId,
 			'favorite' => $state,
+			'code' => $code,
 			'message' => $message,
 		];
 		if ($catId <= 0) {
-			return $fail('No category was named, so nothing changed.', $favorite);
+			return $fail('invalid_category', 'No category was named, so nothing changed.', $favorite);
+		}
+		// A freshly unpacked extension has no state directory yet, and the
+		// adapter can call this without the settings page ever having run.
+		if (!$this->assertStoreUsable()) {
+			return $fail('store_unusable', 'Favorite Categories state store is unusable: '
+				. $this->store()->error(), $favorite);
 		}
 		$name = $this->categoryName($catId);
 		if ($name === null) {
-			return $fail('Category ' . $catId . ' no longer exists — nothing changed.', $favorite);
+			return $fail('category_not_found', 'Category ' . $catId . ' no longer exists — nothing changed.', $favorite);
 		}
 		$wasFavorite = in_array($catId, $this->store()->favIds(), true);
 		$result = $favorite
 			? $this->store()->favCategory($catId, $name)
 			: $this->store()->unfavCategory($catId, $name);
 		if (!$result['ok']) {
-			return $fail($result['message'], $wasFavorite);
+			return $fail('save_failed', $result['message'], $wasFavorite);
 		}
 		$sweep = $this->sweepFeeds();
 		return [
 			'ok' => true,
 			'changed' => $wasFavorite !== $favorite,
 			'converged' => (bool) $sweep['ok'],
+			'code' => $sweep['ok'] ? '' : 'convergence_failed',
 			'catId' => $catId,
 			'favorite' => $favorite,
 			'message' => $result['message'] . ($sweep['ok'] ? '' : ' But ' . $sweep['message'] . '.'),
@@ -498,7 +525,18 @@ class FavoriteCategoriesExtension extends Minz_Extension
 				'changed' => false,
 				'converged' => false,
 				'view' => $this->store()->view(),
+				'code' => 'invalid_view',
 				'message' => 'Unknown view "' . $view . '": nothing was changed.',
+			];
+		}
+		if (!$this->assertStoreUsable()) {
+			return [
+				'ok' => false,
+				'changed' => false,
+				'converged' => false,
+				'view' => 'all',
+				'code' => 'store_unusable',
+				'message' => 'Favorite Categories state store is unusable: ' . $this->store()->error(),
 			];
 		}
 		$before = $this->store()->view();
@@ -508,6 +546,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 				'changed' => false,
 				'converged' => false,
 				'view' => $before,
+				'code' => 'save_failed',
 				'message' => 'Could not save the view: nothing was changed.',
 			];
 		}
@@ -518,6 +557,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 				'changed' => $before !== $view,
 				'converged' => false,
 				'view' => $view,
+				'code' => 'convergence_failed',
 				'message' => 'View saved, but ' . $sweep['message'] . '.',
 			];
 		}
@@ -525,6 +565,7 @@ class FavoriteCategoriesExtension extends Minz_Extension
 			'ok' => true,
 			'changed' => $before !== $view,
 			'converged' => true,
+			'code' => '',
 			'view' => $view,
 			'message' => $view === 'only' ? 'Showing only your favorites.'
 				: ($view === 'without' ? 'Favorites are filtered out.'
